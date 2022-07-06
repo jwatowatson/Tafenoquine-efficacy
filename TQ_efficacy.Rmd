@@ -17,7 +17,9 @@ library(gtools)
 library(lme4)
 ```
 
-# Load data
+
+# Preambule
+## Load data
 
 ```{r load_data}
 # WWARN collated baseline and outcome data
@@ -33,20 +35,26 @@ outcome_dat = outcome_dat[is.na(outcome_dat$pqmgkgtot),]
 outcome_dat$AMT = round(outcome_dat$weight*outcome_dat$tqmgkgtot)
 writeLines('DTQ doses in data:')
 table(outcome_dat$AMT)
+
 ## PK summaries statistics from Joel
 pk_summaries = read.csv('TQ_PK_summaries.csv')
+
+# CYP2D6 genotyping
+cyp2d6 = read.csv('CYP2D6.csv')
+outcome_dat = merge(outcome_dat, cyp2d6, by = 'pid', all.x = T)
 
 # Methaemoglobin: removed all measurements taken at/after recurrence
 mthb_dat = read.csv('Methb_long.csv')
 mthb_dat = merge(mthb_dat, outcome_dat[, c('pid','tqmgkgtot','country')],by='pid')
-
-
 outcome_dat = merge(outcome_dat, pk_summaries, 
                     by.x = 'pid', by.y = 'PID', all.x = T)
 
 outcome_dat$log_AUC = log(outcome_dat$AUC)
 outcome_dat$AUC = outcome_dat$AUC/1000
 ```
+
+
+# Data summaries 
 
 
 ```{r data_summaries}
@@ -63,6 +71,35 @@ colnames(xx)[1]='Dose (mg)'; colnames(xx)[2]=''
 print(xx)
 ```
 
+
+CYP2D6
+
+```{r}
+table(outcome_dat$CYP2D6, outcome_dat$CYP2D6AS)
+diplotypes = strsplit(outcome_dat$CYP2D6, split = '/')
+
+round(100*table(unlist(diplotypes))/sum(table(unlist(diplotypes))),1)
+
+# THIS NEEDS CHECKING
+ASscore_key = data.frame(name=c('*1', '*10', '*2', '*36', '*39', '*4', '*5', '*3', '*6', '*9', '*17', '*41'),
+                         score=c(1,   0.25,   1,     0,     1,    0,     0,   0.5,  0.5,  0.5,  0.5,   0.5))
+
+# Make updated AS score
+outcome_dat$AS_score = NA
+for(i in 1:nrow(outcome_dat)){
+  if(!is.na(outcome_dat$CYP2D6AS[i])){
+    my_dp = diplotypes[[i]]
+    outcome_dat$AS_score[i] =
+      ASscore_key$score[which(ASscore_key$name == my_dp[1])]+
+      ASscore_key$score[which(ASscore_key$name == my_dp[2])]
+  }
+}
+
+table(outcome_dat$AS_score, outcome_dat$CYP2D6AS)
+```
+
+
+## Basic data plots
 
 weight
 
@@ -85,7 +122,6 @@ table(outcome_dat$AMT)
 ind_sensitivity = outcome_dat$AMT >= 300
 sum(ind_sensitivity)
 ```
-
 
 
 
@@ -145,7 +181,7 @@ mod_day7_4 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_alpha,
                 data=outcome_dat)
 summary(mod_day7_4)
 mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
-                data=outcome_dat)
+                       data=outcome_dat)
 plot(outcome_dat$t_12_terminal, log10(outcome_dat$day7_mthb),
      xlab='Terminal elimination half life (days)', ylab = 'Day 7 methaemoglobin (%)',
      panel.first=grid(), yaxt='n')
@@ -176,20 +212,34 @@ hist(pk_summaries$t_12_terminal, xlim = c(0,30),
 median(pk_summaries$t_12_terminal)
 ```
 
-# Weight based models
 
 
-```{r models}
+# Weight based models of tafenoquine efficacy
+
+
+```{r models1}
 mod_mgkg_all = glmer(outcome7to180 ~ tqmgkgtot + logpara0 + (1|studysite),
-                family='binomial', 
-                data = outcome_dat)
-summary(mod_mgkg_all)$coefficients
-exp(fixef(mod_mgkg_all)['tqmgkgtot'])
+                     family='binomial', 
+                     data = outcome_dat)
+mod_mgkg_all_out = summary(mod_mgkg_all)
+print(mod_mgkg_all_out$coefficients)
+writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
+                   length(mod_mgkg_all_out$residuals),
+                   round(exp(fixef(mod_mgkg_all)['tqmgkgtot']),2),
+                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,-1.96)),2),
+                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,1.96)),2)))
 
 mod_mgkg_sens = glmer(outcome7to180 ~ tqmgkgtot + logpara0 + (1|studysite),
-                    family='binomial', data = outcome_dat[ind_sensitivity, ])
-summary(mod_mgkg_sens)$coefficients
-exp(fixef(mod_mgkg_sens)['tqmgkgtot'])
+                      family='binomial', data = outcome_dat[ind_sensitivity, ])
+mod_mgkg_sens_out = summary(mod_mgkg_sens)
+print(mod_mgkg_sens_out$coefficients)
+writeLines(sprintf('Using patients who got 300 or 600 mg (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
+                   length(mod_mgkg_sens_out$residuals),
+                   round(exp(fixef(mod_mgkg_sens)['tqmgkgtot']),2),
+                   round(exp(mod_mgkg_sens_out$coefficients['tqmgkgtot',1:2]%*%c(1,-1.96)),2),
+                   round(exp(mod_mgkg_sens_out$coefficients['tqmgkgtot',1:2]%*%c(1,1.96)),2)))
+
+
 
 # mod_glm_auc = glmer(outcome7to180 ~ scale(AUC) + logpara0 + (1|studysite),
 #                     family='binomial', data = outcome_dat[ind_sensitivity, ])
@@ -386,8 +436,8 @@ axis(1, at = union(w_cuts_standard, w_cuts_revised))
 # lines(45:100, rep(median(f_weight(45:100, w_doses = w_dose_standard, w_cuts = w_cuts_standard)/45:100), 56),lwd=2)
 lines(xs, f_weight(xs, w_doses = w_dose_revised, w_cuts = w_cuts_revised)/xs, lwd=3, lty=2,col='red')
 # lines(45:100, rep(median(f_weight(45:100, w_doses = w_dose_revised,
-                                  # w_cuts = w_cuts_revised)/45:100),56),
-      # lty=2,col='red',lwd=2)
+# w_cuts = w_cuts_revised)/45:100),56),
+# lty=2,col='red',lwd=2)
 
 lines(45:100, 450/(45:100),lty=3,col='red',lwd=2)
 lines(45:100, 600/(45:100),lty=3,col='red',lwd=2)
