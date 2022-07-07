@@ -33,11 +33,14 @@ outcome_dat$study =
 # remove patients who took primaquine
 outcome_dat = outcome_dat[is.na(outcome_dat$pqmgkgtot),]
 outcome_dat$AMT = round(outcome_dat$weight*outcome_dat$tqmgkgtot)
-writeLines('DTQ doses in data:')
+writeLines('TQ doses in data:')
 table(outcome_dat$AMT)
 
 ## PK summaries statistics from Joel
 pk_summaries = read.csv('TQ_PK_summaries.csv')
+outcome_dat = merge(outcome_dat, pk_summaries, by.x = 'pid', by.y = 'PID', all.x = T)
+outcome_dat$log_AUC = log(outcome_dat$AUC)
+outcome_dat$AUC = outcome_dat$AUC/1000
 
 # CYP2D6 genotyping
 cyp2d6 = read.csv('CYP2D6.csv')
@@ -45,12 +48,10 @@ outcome_dat = merge(outcome_dat, cyp2d6, by = 'pid', all.x = T)
 
 # Methaemoglobin: removed all measurements taken at/after recurrence
 mthb_dat = read.csv('Methb_long.csv')
-mthb_dat = merge(mthb_dat, outcome_dat[, c('pid','tqmgkgtot','country')],by='pid')
-outcome_dat = merge(outcome_dat, pk_summaries, 
-                    by.x = 'pid', by.y = 'PID', all.x = T)
+# mthb_dat = merge(mthb_dat, outcome_dat[, c('pid','country')],by='pid',all.x = T)
 
-outcome_dat$log_AUC = log(outcome_dat$AUC)
-outcome_dat$AUC = outcome_dat$AUC/1000
+pk_summaries = merge(pk_summaries, mthb_dat[!duplicated(mthb_dat$pid), c('pid','tqmgkgtot')],by.x = 'PID', by.y='pid', all = T)
+
 ```
 
 
@@ -59,6 +60,8 @@ outcome_dat$AUC = outcome_dat$AUC/1000
 
 ```{r data_summaries}
 table(outcome_dat$country)
+
+range(outcome_dat$tqmgkgtot[outcome_dat$tqmgkgtot>0])
 
 xx = aggregate(hgbmet ~ pid, data = mthb_dat, length)
 writeLines(sprintf('Median number of methb measurements is %s',median(xx$hgbmet)))
@@ -96,6 +99,9 @@ for(i in 1:nrow(outcome_dat)){
 }
 
 table(outcome_dat$AS_score, outcome_dat$CYP2D6AS)
+
+table(`CYP2D6 Genotype` = outcome_dat$CYP2D6, `Activity Score` = outcome_dat$AS_score)
+
 ```
 
 
@@ -119,7 +125,7 @@ for(cc in unique(outcome_dat$country)){
 outcome_dat$studysite = as.factor(outcome_dat$studysite)
 table(outcome_dat$AMT)
 
-ind_sensitivity = outcome_dat$AMT >= 300
+ind_sensitivity = outcome_dat$AMT == 300
 sum(ind_sensitivity)
 ```
 
@@ -127,68 +133,85 @@ sum(ind_sensitivity)
 
 
 ```{r methaemoglobin}
+# make a linear interpolation matrix for the longitudinal methb values
 mthb_mat = array(dim = c(length(unique(mthb_dat$pid)),30))
 rownames(mthb_mat) = unique(mthb_dat$pid)
 
 for(i in 1:nrow(mthb_mat)){
   ind = mthb_dat$pid==rownames(mthb_mat)[i]
+  # linear interpolation function
   f_mthb = approxfun(x = mthb_dat$dayofobs[ind], y = mthb_dat$hgbmet[ind])
   mthb_mat[i, ] = f_mthb(0:29)
 }
-
-par(las=1, mfrow=c(2,2), cex.lab=1.5, cex.axis=1.5)
-for(cc in unique(outcome_dat$tqcat)){
-  ids = unique(outcome_dat$pid[outcome_dat$tqcat==cc])
-  plot(0:29, colMeans(mthb_mat[rownames(mthb_mat) %in% ids, ],na.rm = T),
-       type='l',lwd=3, ylim = c(0, 8), ylab='Methaemoglobin (%)',
-       xlab='Days since dose',
-       panel.first=grid(), main=cc)
-  lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.1, na.rm = T))
-  lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.9, na.rm = T))
-}
-
-
+# extract the day 7 methb
 day_7_mthb = data.frame(pid = rownames(mthb_mat), day7_mthb=mthb_mat[,8])
 write.csv(x = day_7_mthb, file = 'day_7_mthb.csv')
-outcome_dat = merge(outcome_dat, day_7_mthb, by='pid', all.x=T)
+pk_summaries = merge(pk_summaries, day_7_mthb, by.x = 'PID',by.y='pid', all.x=T)
 
-par(las=1, mfrow=c(1,1))
-plot(outcome_dat$tqmgkgtot, log10(outcome_dat$day7_mthb), yaxt='n',
+
+par(las=1, mfrow=c(2,2), cex.lab=1.3, cex.axis=1.3)
+
+# 3-6 mg/kg (slightly arbitrary but approx what you get with 300 mg)
+ids = unique(pk_summaries$PID[pk_summaries$tqmgkgtot>=3 & pk_summaries$tqmgkgtot<=6])
+plot(0:29, colMeans(mthb_mat[rownames(mthb_mat) %in% ids, ],na.rm = T),
+     type='l',lwd=3, ylim = c(0, 6.5), ylab='Methaemoglobin (%)',
+     xlab='Days since dose',
+     panel.first=grid(), main=paste0('3-6 mg/kg (n=',length(ids),')'))
+lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.1, na.rm = T))
+lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.9, na.rm = T))
+abline(v=7, lty=2)
+mtext(text = 'a',side = 3,adj = 0,line = 1.5,cex=1.5)
+
+# Above 6 mg/kg
+ids = unique(pk_summaries$PID[pk_summaries$tqmgkgtot>6])
+plot(0:29, colMeans(mthb_mat[rownames(mthb_mat) %in% ids, ],na.rm = T),
+     type='l',lwd=3, ylim = c(0, 6.5), ylab='Methaemoglobin (%)',
+     xlab='Days since dose',
+     panel.first=grid(), main=paste0('>6 mg/kg (n=',length(ids),')'))
+lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.1, na.rm = T))
+lines(0:29, apply(mthb_mat[rownames(mthb_mat) %in% ids, ],2, quantile, probs=.9, na.rm = T))
+abline(v=7, lty=2)
+mtext(text = 'b',side = 3,adj = 0,line = 1.5,cex=1.5)
+
+
+plot(pk_summaries$tqmgkgtot, log10(pk_summaries$day7_mthb), yaxt='n',
      ylab='Day 7 methaemoglobin (%)', xlab='Tafenoquine dose (mg/kg)',
+     ylim = log10(c(0.3, 10)),
      panel.first=grid())
-axis(2, at = -1:1, labels = 10^(-1:1))
-axis(2, at = log10(seq(0.1, 1, by=.1)), labels = NA)
+axis(2, at = 0:1, labels = 10^(0:1))
+axis(2, at = log10(c(0.3, 3)), labels = c(0.3, 3))
+axis(2, at = log10(seq(0.3, 1, by=.1)), labels = NA)
 axis(2, at = log10(seq(1, 10, by=1)), labels = NA)
-mod_day7 = lm(log10(day7_mthb) ~ tqmgkgtot, data=outcome_dat)
+mtext(text = 'c',side = 3,adj = 0,line = 1.5,cex=1.5)
+
+# linear fit
+mod_day7 = lm(log10(day7_mthb) ~ tqmgkgtot, data=pk_summaries)
 lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
-mod_day7 = gam(log10(day7_mthb) ~ s(tqmgkgtot,k=3), data=outcome_dat)
-lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
+# non-linear fit
+# mod_day7 = gam(log10(day7_mthb) ~ s(tqmgkgtot,k=3), data=outcome_dat)
+# lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
+# 
+# mod_day7_2 = lm(day7_mthb ~ tqmgkgtot + AUC + (AS_score<1), data=pk_summaries)
+# summary(mod_day7_2)
 
+pk_summaries$t_12_terminal[!is.na(pk_summaries$t_12_terminal) & pk_summaries$t_12_terminal>30]=NA
 
-mod_day7_2 = lm(day7_mthb ~ tqmgkgtot + scale(AUC),
-                data=outcome_dat[outcome_dat$AMT>100, ])
-summary(mod_day7_2)
-
-
-
-outcome_dat$t_12_terminal[outcome_dat$t_12_terminal>35]=NA
-outcome_dat$t_12_alpha[outcome_dat$t_12_alpha>4]=NA
-
-mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
-                data=outcome_dat)
+mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,data=pk_summaries)
 summary(mod_day7_3)
-mod_day7_4 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_alpha,
-                data=outcome_dat)
-summary(mod_day7_4)
+
 mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
-                       data=outcome_dat)
-plot(outcome_dat$t_12_terminal, log10(outcome_dat$day7_mthb),
-     xlab='Terminal elimination half life (days)', ylab = 'Day 7 methaemoglobin (%)',
+                       data=pk_summaries)
+plot(pk_summaries$t_12_terminal, log10(pk_summaries$day7_mthb),
+     xlab='Terminal elimination half life (days)', 
+     ylab = 'Day 7 methaemoglobin (%)', ylim = log10(c(.3, 10)),
      panel.first=grid(), yaxt='n')
-axis(2, at = -1:1, labels = 10^(-1:1))
-axis(2, at = log10(seq(0.1, 1, by=.1)), labels = NA)
+axis(2, at = 0:1, labels = 10^(0:1))
+axis(2, at = log10(c(0.3, 3)), labels = c(0.3, 3))
+axis(2, at = log10(seq(0.3, 1, by=.1)), labels = NA)
 axis(2, at = log10(seq(1, 10, by=1)), labels = NA)
-lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal=5:30)),lwd=3)
+mtext(text = 'd',side = 3,adj = 0,line = 1.5,cex=1.5)
+
+lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal=5:30)),lwd=3,lty=2)
 ```
 
 
@@ -210,6 +233,9 @@ hist(pk_summaries$t_12_terminal, xlim = c(0,30),
      xlab='Terminal elimination half life (days)', breaks = 30,main='',
      yaxt='n',ylab='')
 median(pk_summaries$t_12_terminal)
+
+summary(lm(t_12_terminal ~ AS_score<=0.5, data = outcome_dat))
+boxplot(day7_mthb ~ AS_score, data = outcome_dat)
 ```
 
 
@@ -233,14 +259,23 @@ mod_mgkg_sens = glmer(outcome7to180 ~ tqmgkgtot + logpara0 + (1|studysite),
                       family='binomial', data = outcome_dat[ind_sensitivity, ])
 mod_mgkg_sens_out = summary(mod_mgkg_sens)
 print(mod_mgkg_sens_out$coefficients)
-writeLines(sprintf('Using patients who got 300 or 600 mg (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
+writeLines(sprintf('Using only patients who got a 300 mg dose (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
                    length(mod_mgkg_sens_out$residuals),
                    round(exp(fixef(mod_mgkg_sens)['tqmgkgtot']),2),
                    round(exp(mod_mgkg_sens_out$coefficients['tqmgkgtot',1:2]%*%c(1,-1.96)),2),
                    round(exp(mod_mgkg_sens_out$coefficients['tqmgkgtot',1:2]%*%c(1,1.96)),2)))
 
 
+# s: spline term; k= is number of knots; 're' means random effect
+mod_mgkg_all_gam = gam(outcome7to180 ~ s(tqmgkgtot,k=5) + logpara0 + s(studysite,bs='re'),
+                       family='binomial', 
+                       data = outcome_dat)
+summary(mod_mgkg_all_gam)
 
+mod_mgkg_sens_gam = gam(outcome7to180 ~ s(tqmgkgtot,k=5) + logpara0 + s(studysite,bs='re'),
+                        family='binomial', 
+                        data = outcome_dat[ind_sensitivity,])
+summary(mod_mgkg_sens_gam)
 # mod_glm_auc = glmer(outcome7to180 ~ scale(AUC) + logpara0 + (1|studysite),
 #                     family='binomial', data = outcome_dat[ind_sensitivity, ])
 # summary(mod_glm_auc)
@@ -307,105 +342,125 @@ writeLines(sprintf('Using patients who got 300 or 600 mg (n=%s), the odds ratio 
 
 
 
-main mg/kg plot
+Figure 1 of results in paper: the main mg/kg driving efficacy plot
 
 ```{r mg_kg_efficacy}
-par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(0,5,2,2))
 layout(mat = matrix(c(1,2,2,2),nrow = 4))
+par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(0,5,2,2))
 hist(outcome_dat$tqmgkgtot,
      ylab='',xaxt='n',xlab='',yaxt='n',
-     main='', breaks = seq(0,15,by=.5))
-
-xs1=seq(2.5,14,length.out=100)
-y_preds1 = predict(mod_glm, newdata = data.frame(tqmgkgtot=xs1,
-                                                 logpara0=4,
-                                                 studysite = -1,
-                                                 country = -1),
-                   se.fit = T, re.form=NA)
-y_preds1_gam = predict(mod_gam, newdata = data.frame(tqmgkgtot=xs1,
-                                                     logpara0=4,
-                                                     studysite = -1,
-                                                     country = -1),
-                       se.fit = T, re.form=NA)
+     main='', breaks = seq(0,15,by=.25))
 
 xs_all=seq(0,15,length.out=100)
-y_preds_all = predict(mod_glm_all, newdata = data.frame(tqmgkgtot=xs_all,
-                                                        logpara0=4,
-                                                        studysite = -1,
-                                                        country = -1),
+y_preds_all = predict(mod_mgkg_all_gam,
+                      newdata = data.frame(tqmgkgtot=xs_all,
+                                           logpara0=4,
+                                           studysite = -1),
                       se.fit = T, re.form=NA)
-y_preds_all_gam = predict(mod_gam_all, newdata = data.frame(tqmgkgtot=xs_all,
-                                                            logpara0=4,
-                                                            studysite = -1,
-                                                            country = -1),
-                          se.fit = T, re.form=NA)
-
+xs_sens=seq(min(outcome_dat$tqmgkgtot[ind_sensitivity]),
+            max(outcome_dat$tqmgkgtot[ind_sensitivity]),
+            length.out=100)
+y_preds_sens = predict(mod_mgkg_sens_gam, 
+                       newdata = data.frame(tqmgkgtot=xs_sens,
+                                            logpara0=4,
+                                            studysite = -1),
+                       se.fit = T, re.form=NA)
 par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(5,5,0,2))
-plot(xs1, 100*inv.logit(y_preds1_gam$fit), type='l',lwd=3, 
+plot(xs_sens, 100*inv.logit(y_preds_sens$fit), type='l',lwd=3, 
      xlab = 'Single dose tafenoquine (mg/kg)',
      ylab = 'Recurrent P. vivax within 6 months (%)', 
-     ylim = c(0,70), panel.first=grid(), xaxt='n',
-     xlim = c(0,15))
-polygon(x = c(xs1, rev(xs1)),
-        y = 100*inv.logit(c(y_preds1_gam$fit+1.96*y_preds1_gam$se.fit,
-                            rev(y_preds1_gam$fit-1.96*y_preds1_gam$se.fit))),
+     ylim = c(0,70), panel.first=grid(), xlim = c(0,15))
+polygon(x = c(xs_sens, rev(xs_sens)),
+        y = 100*inv.logit(c(y_preds_sens$fit+1.96*y_preds_sens$se.fit,
+                            rev(y_preds_sens$fit-1.96*y_preds_sens$se.fit))),
         border = NA, col = adjustcolor('grey', .4))
 
-axis(1, at = c(0,5,10,15))
-# lines(xs1, 100*inv.logit(y_preds1))
-
-# lines(xs, 100*inv.logit(y_preds1_gam$fit),col='red')
-lines(xs_all, 100*inv.logit(y_preds_all_gam$fit),col='red',lwd=3)
+lines(xs_all, 100*inv.logit(y_preds_all$fit),col='red',lwd=3)
 polygon(x = c(xs_all, rev(xs_all)),
-        y = 100*inv.logit(c(y_preds_all_gam$fit+1.96*y_preds_all_gam$se.fit,
-                            rev(y_preds_all_gam$fit-1.96*y_preds_all_gam$se.fit))),
+        y = 100*inv.logit(c(y_preds_all$fit+1.96*y_preds_all$se.fit,
+                            rev(y_preds_all$fit-1.96*y_preds_all$se.fit))),
         border = NA, col = adjustcolor('red', .2))
-# abline(v=4.8, lwd=2, lty=2)
-
-
 ```
 
+compare logistic regression fits and spline fits
 
-
-second mg/kg plot
-
-```{r mg_kg_efficacy_all}
-par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(0,5,2,2))
-layout(mat = matrix(c(1,2,2,2),nrow = 4))
-hist(outcome_dat$tqmgkgtot,ylab='',xaxt='n',xlab='',yaxt='n',
-     main='', breaks = seq(0,14.5,by=.5))
-
-xs2=seq(0,14.5,length.out=100)
-y_preds2 = predict(mod_gam_all, newdata = data.frame(tqmgkgtot=xs2,
-                                                     logpara0=4,
-                                                     studysite = -1),
-                   se.fit = T)
-
-par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(5,5,0,2))
-plot(xs2, 100*inv.logit(y_preds2$fit), type='l',lwd=3, 
+```{r logistic_vs_spline}
+plot(xs_all, 100*inv.logit(y_preds_all$fit), type='l',lwd=3, 
      xlab = 'Single dose tafenoquine (mg/kg)',
      ylab = 'Recurrent P. vivax within 6 months (%)', 
-     ylim = c(0,70), panel.first=grid(), xaxt='n')
-axis(1, at = c(2,5,9,12))
-polygon(x = c(xs2, rev(xs2)), 
-        y = 100*inv.logit(c(y_preds2$fit+1.96*y_preds2$se.fit, 
-                            rev(y_preds2$fit-1.96*y_preds2$se.fit))),
-        border = NA, col = adjustcolor('grey', .4))
-abline(v=4.8, lwd=2, lty=2)
-lines(xs1,100*inv.logit(y_preds1),lwd=3, col='red')
-
+     ylim = c(0,70), panel.first=grid(), xlim = c(0,15))
+y_preds_all_glm = predict(mod_mgkg_all,
+                          newdata = data.frame(tqmgkgtot=xs_all,
+                                               logpara0=4,
+                                               studysite = -1),
+                          re.form=NA)
+lines(xs_all, 100*inv.logit(y_preds_all_glm),lwd=3,lty=2,col='darkblue')
 ```
 
 
+Compare for different parts of the world
 
-vomiting
+```{r by_region, fig.width=8, fig.height=4}
+table(outcome_dat$region)
+par(mfrow=c(1,3),las=1, cex.lab=1.3, cex.axis=1.3, family='serif')
+layout(mat = matrix(c(1,2,2,2,3,4,4,4,5,6,6,6),nrow = 4))
+
+for(rg in unique(outcome_dat$region)){
+  ind = outcome_dat$region==rg
+  table(outcome_dat$region, outcome_dat$studysite)
+  par(mar=c(0,5,4,2))
+  hist(outcome_dat$tqmgkgtot[ind],main=paste0(rg,' (n=',sum(ind),')'),
+       ylab='',xaxt='n',xlab='',yaxt='n',breaks = seq(0,15,by=.5))
+  
+  mod_rg = gam(outcome7to180 ~ s(tqmgkgtot,k=3) + s(studysite, bs='re'),
+               family='binomial', data = outcome_dat[ind, ])
+  mod_rg_glm = glm(outcome7to180 ~ tqmgkgtot + studysite,
+               family='binomial', data = outcome_dat[ind, ])
+  writeLines(sprintf('In %s the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is %s',rg, round(exp(coef(mod_rg_glm)['tqmgkgtot']),2)))
+  
+  print(summary(mod_rg))
+  y_preds = predict(mod_rg,newdata = data.frame(tqmgkgtot=xs_all,studysite= -1),se.fit=T)
+  
+  xs = seq(min(outcome_dat$tqmgkgtot[ind]), 
+           max(outcome_dat$tqmgkgtot[ind]),length.out=100)
+  par(mar=c(5,5,0,2))
+  plot(xs, 100*inv.logit(y_preds$fit), type='l',lwd=3, 
+       xlab = 'Single dose tafenoquine (mg/kg)',
+       ylab = 'Recurrent P. vivax within 6 months (%)', 
+       ylim = c(0,70), panel.first=grid(), xlim = c(0,15))
+  polygon(x = c(xs, rev(xs)),
+          y = 100*inv.logit(c(y_preds$fit+1.96*y_preds$se.fit,
+                              rev(y_preds$fit-1.96*y_preds$se.fit))),
+          border = NA, col = adjustcolor('grey', .4))
+}
+
+writeLines('In patients who recived 300 mg single dose:')
+ind_300=outcome_dat$AMT==300
+xx=aggregate(outcome7to180 ~ region, data = outcome_dat[ind_300, ], function(x) round(100*mean(x),1))
+print(xx)
+```
+
+
+## Terminal elimination half-life and efficacy
 
 ```{r}
-mod_vom = glmer(vomiting ~ tqmgkgtot + (1|studysite),
-                family='binomial', data = outcome_dat)
-summary(mod_vom)
+mod_t_12 = glmer(outcome7to180 ~ t_12_terminal + logpara0 + (1|studysite),
+                 family='binomial', 
+                 data = outcome_dat)
+mod_t_12_out = summary(mod_t_12)
+print(mod_t_12_out$coefficients)
+writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
+                   length(mod_mgkg_all_out$residuals),
+                   round(exp(fixef(mod_mgkg_all)['tqmgkgtot']),2),
+                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,-1.96)),2),
+                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,1.96)),2)))
+
 ```
 
+
+
+
+# Power calculations and trial design
 
 ```{r revised_dosing}
 f_weight = function(w_kg, w_doses, w_cuts){
@@ -433,11 +488,7 @@ plot(xs, f_weight(xs, w_doses = w_dose_standard,
      xlab='Weight (kg)', ylab = 'Tafenoquine mg/kg dose',
      xaxt='n')
 axis(1, at = union(w_cuts_standard, w_cuts_revised))
-# lines(45:100, rep(median(f_weight(45:100, w_doses = w_dose_standard, w_cuts = w_cuts_standard)/45:100), 56),lwd=2)
 lines(xs, f_weight(xs, w_doses = w_dose_revised, w_cuts = w_cuts_revised)/xs, lwd=3, lty=2,col='red')
-# lines(45:100, rep(median(f_weight(45:100, w_doses = w_dose_revised,
-# w_cuts = w_cuts_revised)/45:100),56),
-# lty=2,col='red',lwd=2)
 
 lines(45:100, 450/(45:100),lty=3,col='red',lwd=2)
 lines(45:100, 600/(45:100),lty=3,col='red',lwd=2)
@@ -462,25 +513,25 @@ sim_dose_mgkg_current = f_weight(w_kg = sim_ws, w_doses = w_dose_standard, w_cut
 sim_dose_mgkg_revised = f_weight(w_kg = sim_ws, w_doses = w_dose_revised, w_cuts = w_cuts_revised)/sim_ws
 
 
-sim_rec_current = predict(mod_gam_all, 
+sim_rec_current = predict(mod_mgkg_all_gam, 
                           newdata = data.frame(tqmgkgtot=sim_dose_mgkg_current,
                                                logpara0=4,
                                                studysite = -1),re.form=NA,
                           type='response')
 
-sim_rec_revised = predict(mod_gam_all, 
+sim_rec_revised = predict(mod_mgkg_all_gam, 
                           newdata = data.frame(tqmgkgtot=sim_dose_mgkg_revised,
                                                logpara0 = 4,
                                                studysite = -1),re.form=NA,
                           type='response')
 
-sim_450 = predict(mod_gam_all, 
+sim_450 = predict(mod_mgkg_all_gam, 
                   newdata = data.frame(tqmgkgtot=450/sim_ws[sim_ws>=45],
                                        logpara0 = 4,
                                        studysite = -1),re.form=NA,
                   type='response')
 
-sim_600 = predict(mod_gam_all, 
+sim_600 = predict(mod_mgkg_all_gam, 
                   newdata = data.frame(tqmgkgtot=600/sim_ws[sim_ws>=45],
                                        logpara0 = 4,
                                        studysite = -1),re.form=NA,
@@ -507,7 +558,7 @@ Superiority of 450 over 300 mg single dose
 
 ```{r power_calc}
 Ns = seq(50, 350, by = 50)
-Sims = 1000
+Sims = 100 # make this large to get accurate curves
 doses = c(450, 600)
 power_mat = array(dim = c(length(Ns), Sims, length(doses)))
 options(warn= -1)
@@ -517,7 +568,7 @@ for(d in 1:length(doses)){
     for(j in 1:Sims){
       trts = c(rep(300, Ns[i]), rep(doses[d], Ns[i]))
       ws = sample(outcome_dat$weight, size = 2*Ns[i], replace = T)
-      sim_out = predict(mod_gam_all, 
+      sim_out = predict(mod_mgkg_all_gam, 
                         newdata = data.frame(tqmgkgtot=trts/ws,
                                              logpara0 = 4,
                                              studysite = -1),
