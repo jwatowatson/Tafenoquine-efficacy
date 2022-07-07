@@ -149,7 +149,7 @@ write.csv(x = day_7_mthb, file = 'day_7_mthb.csv')
 pk_summaries = merge(pk_summaries, day_7_mthb, by.x = 'PID',by.y='pid', all.x=T)
 
 
-par(las=1, mfrow=c(2,2), cex.lab=1.3, cex.axis=1.3)
+par(las=1, mfrow=c(2,2), cex.lab=1.4, cex.axis=1.3)
 # 3-6 mg/kg (slightly arbitrary but approx what you get with 300 mg)
 ids = unique(pk_summaries$PID[pk_summaries$tqmgkgtot>=3 & pk_summaries$tqmgkgtot<=6])
 plot(0:29, colMeans(mthb_mat[rownames(mthb_mat) %in% ids, ],na.rm = T),
