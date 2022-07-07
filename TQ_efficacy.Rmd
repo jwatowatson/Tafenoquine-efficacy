@@ -150,7 +150,6 @@ pk_summaries = merge(pk_summaries, day_7_mthb, by.x = 'PID',by.y='pid', all.x=T)
 
 
 par(las=1, mfrow=c(2,2), cex.lab=1.3, cex.axis=1.3)
-
 # 3-6 mg/kg (slightly arbitrary but approx what you get with 300 mg)
 ids = unique(pk_summaries$PID[pk_summaries$tqmgkgtot>=3 & pk_summaries$tqmgkgtot<=6])
 plot(0:29, colMeans(mthb_mat[rownames(mthb_mat) %in% ids, ],na.rm = T),
@@ -194,14 +193,14 @@ lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
 # mod_day7_2 = lm(day7_mthb ~ tqmgkgtot + AUC + (AS_score<1), data=pk_summaries)
 # summary(mod_day7_2)
 
-pk_summaries$t_12_terminal[!is.na(pk_summaries$t_12_terminal) & pk_summaries$t_12_terminal>30]=NA
+pk_summaries$t_12_terminal_rescaled[!is.na(pk_summaries$t_12_terminal_rescaled) & pk_summaries$t_12_terminal_rescaled>30]=NA
 
-mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,data=pk_summaries)
+mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,data=pk_summaries)
 summary(mod_day7_3)
 
-mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
+mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,
                        data=pk_summaries)
-plot(pk_summaries$t_12_terminal, log10(pk_summaries$day7_mthb),
+plot(pk_summaries$t_12_terminal_rescaled, log10(pk_summaries$day7_mthb),
      xlab='Terminal elimination half life (days)', 
      ylab = 'Day 7 methaemoglobin (%)', ylim = log10(c(.3, 10)),
      panel.first=grid(), yaxt='n')
@@ -211,12 +210,13 @@ axis(2, at = log10(seq(0.3, 1, by=.1)), labels = NA)
 axis(2, at = log10(seq(1, 10, by=1)), labels = NA)
 mtext(text = 'd',side = 3,adj = 0,line = 1.5,cex=1.5)
 
-lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal=5:30)),lwd=3,lty=2)
+lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal_rescaled=5:30)),lwd=3,lty=2)
 ```
 
 
 
 ```{r mgkg_AUC}
+outcome_dat = merge(outcome_dat, day_7_mthb, by = 'pid', all.x=T)
 par(las=1, cex.axis=1.3, cex.lab=1.3)
 plot(outcome_dat$tqmgkgtot, outcome_dat$AUC,
      xlab='TQ (mg/kg)',col=as.numeric(ind_sensitivity)+1,
