@@ -193,14 +193,14 @@ lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
 # mod_day7_2 = lm(day7_mthb ~ tqmgkgtot + AUC + (AS_score<1), data=pk_summaries)
 # summary(mod_day7_2)
 
-pk_summaries$t_12_terminal_rescaled[!is.na(pk_summaries$t_12_terminal_rescaled) & pk_summaries$t_12_terminal_rescaled>30]=NA
+pk_summaries$t_12_terminal[!is.na(pk_summaries$t_12_terminal) & pk_summaries$t_12_terminal>31]=NA
 
-mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,data=pk_summaries)
+mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,data=pk_summaries)
 summary(mod_day7_3)
 
-mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,
+mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
                        data=pk_summaries)
-plot(pk_summaries$t_12_terminal_rescaled, log10(pk_summaries$day7_mthb),
+plot(pk_summaries$t_12_terminal, log10(pk_summaries$day7_mthb),
      xlab='Terminal elimination half life (days)', 
      ylab = 'Day 7 methaemoglobin (%)', ylim = log10(c(.3, 10)),
      panel.first=grid(), yaxt='n')
@@ -210,7 +210,7 @@ axis(2, at = log10(seq(0.3, 1, by=.1)), labels = NA)
 axis(2, at = log10(seq(1, 10, by=1)), labels = NA)
 mtext(text = 'd',side = 3,adj = 0,line = 1.5,cex=1.5)
 
-lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal_rescaled=5:30)),lwd=3,lty=2)
+lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal=5:30)),lwd=3,lty=2)
 ```
 
 
@@ -406,7 +406,7 @@ par(mfrow=c(1,3),las=1, cex.lab=1.3, cex.axis=1.3, family='serif')
 layout(mat = matrix(c(1,2,2,2,3,4,4,4,5,6,6,6),nrow = 4))
 
 for(rg in unique(outcome_dat$region)){
-  ind = outcome_dat$region==rg
+  ind = outcome_dat$region==rg & (!outcome_dat$country %in% c('India','Philippines'))
   table(outcome_dat$region, outcome_dat$studysite)
   par(mar=c(0,5,4,2))
   hist(outcome_dat$tqmgkgtot[ind],main=paste0(rg,' (n=',sum(ind),')'),
@@ -444,16 +444,16 @@ print(xx)
 ## Terminal elimination half-life and efficacy
 
 ```{r}
-mod_t_12 = glmer(outcome7to180 ~ t_12_terminal + logpara0 + (1|studysite),
+mod_t_12 = glmer(outcome7to180 ~ t_12_terminal + tqmgkgtot + logpara0 + (1|studysite),
                  family='binomial', 
                  data = outcome_dat)
 mod_t_12_out = summary(mod_t_12)
 print(mod_t_12_out$coefficients)
-writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is %s (95%% CI %s to %s)',
-                   length(mod_mgkg_all_out$residuals),
-                   round(exp(fixef(mod_mgkg_all)['tqmgkgtot']),2),
-                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,-1.96)),2),
-                   round(exp(mod_mgkg_all_out$coefficients['tqmgkgtot',1:2]%*%c(1,1.96)),2)))
+writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
+                   length(mod_t_12_out$residuals),
+                   round(exp(fixef(mod_t_12)['t_12_terminal']),2),
+                   round(exp(mod_t_12_out$coefficients['t_12_terminal',1:2]%*%c(1,-1.96)),2),
+                   round(exp(mod_t_12_out$coefficients['t_12_terminal',1:2]%*%c(1,1.96)),2)))
 
 ```
 
