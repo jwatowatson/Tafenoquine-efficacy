@@ -140,7 +140,7 @@ rownames(mthb_mat) = unique(mthb_dat$pid)
 for(i in 1:nrow(mthb_mat)){
   ind = mthb_dat$pid==rownames(mthb_mat)[i]
   # linear interpolation function
-  f_mthb = approxfun(x = mthb_dat$dayofobs[ind], y = mthb_dat$hgbmet[ind])
+  f_mthb = approxfun(x = mthb_dat$time_since_dose[ind], y = mthb_dat$hgbmet[ind])
   mthb_mat[i, ] = f_mthb(0:29)
 }
 # extract the day 7 methb
@@ -193,14 +193,14 @@ lines(0:15, predict(mod_day7, data.frame(tqmgkgtot=0:15)),lty=2,lwd=3)
 # mod_day7_2 = lm(day7_mthb ~ tqmgkgtot + AUC + (AS_score<1), data=pk_summaries)
 # summary(mod_day7_2)
 
-pk_summaries$t_12_terminal[!is.na(pk_summaries$t_12_terminal) & pk_summaries$t_12_terminal>31]=NA
+pk_summaries$t_12_terminal_rescaled[!is.na(pk_summaries$t_12_terminal_rescaled) & pk_summaries$t_12_terminal_rescaled>31]=NA
 
-mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,data=pk_summaries)
+mod_day7_3 = lm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,data=pk_summaries)
 summary(mod_day7_3)
 
-mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal,
+mod_day7_3 = MASS::rlm(log10(day7_mthb) ~ tqmgkgtot + t_12_terminal_rescaled,
                        data=pk_summaries)
-plot(pk_summaries$t_12_terminal, log10(pk_summaries$day7_mthb),
+plot(pk_summaries$t_12_terminal_rescaled, log10(pk_summaries$day7_mthb),
      xlab='Terminal elimination half life (days)', 
      ylab = 'Day 7 methaemoglobin (%)', ylim = log10(c(.3, 10)),
      panel.first=grid(), yaxt='n')
@@ -210,7 +210,7 @@ axis(2, at = log10(seq(0.3, 1, by=.1)), labels = NA)
 axis(2, at = log10(seq(1, 10, by=1)), labels = NA)
 mtext(text = 'd',side = 3,adj = 0,line = 1.5,cex=1.5)
 
-lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal=5:30)),lwd=3,lty=2)
+lines(5:30, predict(mod_day7_3, data.frame(tqmgkgtot=5, t_12_terminal_rescaled=5:30)),lwd=3,lty=2)
 ```
 
 
@@ -229,12 +229,12 @@ lines(0:14, predict(mod, data.frame(tqmgkgtot=0:14)),lwd=3, col='darkblue')
 
 ```{r terminal_half_life}
 par(las=1, cex.axis=1.3, cex.lab=1.3)
-hist(pk_summaries$t_12_terminal, xlim = c(0,30),
+hist(pk_summaries$t_12_terminal_rescaled, xlim = c(0,30),
      xlab='Terminal elimination half life (days)', breaks = 30,main='',
      yaxt='n',ylab='')
-median(pk_summaries$t_12_terminal)
+median(pk_summaries$t_12_terminal_rescaled)
 
-summary(lm(t_12_terminal ~ AS_score<=0.5, data = outcome_dat))
+summary(lm(t_12_terminal_rescaled ~ AS_score<=0.5, data = outcome_dat))
 boxplot(day7_mthb ~ AS_score, data = outcome_dat)
 ```
 
@@ -281,20 +281,20 @@ summary(mod_mgkg_sens_gam)
 # summary(mod_glm_auc)
 # exp(fixef(mod_glm_auc)['scale(AUC)'])
 # 
-# mod_glm_t_12 = glmer(outcome7to180 ~ t_12_terminal + logpara0 + (1|studysite),
+# mod_glm_t_12 = glmer(outcome7to180 ~ t_12_terminal_rescaled + logpara0 + (1|studysite),
 #                     family='binomial', data = outcome_dat[ind_sensitivity, ])
 # summary(mod_glm_t_12)
-# exp(fixef(mod_glm_t_12)['t_12_terminal'])
+# exp(fixef(mod_glm_t_12)['t_12_terminal_rescaled'])
 # 
-# mod_glm_t_12_tq = glmer(outcome7to180 ~ tqmgkgtot + t_12_terminal + logpara0 + (1|studysite),
+# mod_glm_t_12_tq = glmer(outcome7to180 ~ tqmgkgtot + t_12_terminal_rescaled + logpara0 + (1|studysite),
 #                     family='binomial', data = outcome_dat)
 # summary(mod_glm_t_12_tq)
-# exp(fixef(mod_glm_t_12_tq)['t_12_terminal'])
+# exp(fixef(mod_glm_t_12_tq)['t_12_terminal_rescaled'])
 # 
-# mod_glm_everything = glmer(outcome7to180 ~ tqmgkgtot + t_12_terminal + day7_mthb + (1|studysite),
+# mod_glm_everything = glmer(outcome7to180 ~ tqmgkgtot + t_12_terminal_rescaled + day7_mthb + (1|studysite),
 #                     family='binomial', data = outcome_dat)
 # summary(mod_glm_everything)
-# exp(fixef(mod_glm_t_12_tq)['t_12_terminal'])
+# exp(fixef(mod_glm_t_12_tq)['t_12_terminal_rescaled'])
 # 
 # 
 # mod_glm_mthb1 = glmer(outcome7to180 ~ day7_mthb + tqmgkgtot + logpara0 + (1|studysite),
@@ -444,16 +444,16 @@ print(xx)
 ## Terminal elimination half-life and efficacy
 
 ```{r}
-mod_t_12 = glmer(outcome7to180 ~ t_12_terminal + tqmgkgtot + logpara0 + (1|studysite),
-                 family='binomial', 
-                 data = outcome_dat)
+plot(outcome_dat$weight, outcome_dat$t_12_terminal_rescaled)
+cor.test(outcome_dat$weight, outcome_dat$t_12_terminal_rescaled)
+mod_t_12 = glmer(outcome7to180 ~ t_12_terminal_rescaled + tqmgkgtot + (1|studysite),family='binomial', data = outcome_dat)
 mod_t_12_out = summary(mod_t_12)
 print(mod_t_12_out$coefficients)
 writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
                    length(mod_t_12_out$residuals),
-                   round(exp(fixef(mod_t_12)['t_12_terminal']),2),
-                   round(exp(mod_t_12_out$coefficients['t_12_terminal',1:2]%*%c(1,-1.96)),2),
-                   round(exp(mod_t_12_out$coefficients['t_12_terminal',1:2]%*%c(1,1.96)),2)))
+                   round(exp(fixef(mod_t_12)['t_12_terminal_rescaled']),2),
+                   round(exp(mod_t_12_out$coefficients['t_12_terminal_rescaled',1:2]%*%c(1,-1.96)),2),
+                   round(exp(mod_t_12_out$coefficients['t_12_terminal_rescaled',1:2]%*%c(1,1.96)),2)))
 
 ```
 
