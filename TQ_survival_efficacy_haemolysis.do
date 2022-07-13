@@ -437,6 +437,8 @@ mixed hbchange_day678 tqmgkgtot cmax age_5 sex logpara0 hbday0 if count==1 ||stu
 *look at methb
 gen logmethb_d7=log10(day7_mthb)
 mixed hbchange_day23 tqmgkgtot logmethb_d7 age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig methb (not tqmg/kg)
+mixed hbchange_day23 tqmgkgtot day7_mthb age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig methb (not tqmg/kg)
+
 mixed hbchange_day678 tqmgkgtot logmethb_d7 age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig methb (not tqmg/kg)
 
 *look at t12
