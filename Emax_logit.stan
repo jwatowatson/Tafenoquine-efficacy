@@ -15,6 +15,8 @@ data {
   int<lower=0,upper=1> recurrence[N];
   vector<lower=0>[N] dose_mg_kg;
   int<lower=1,upper=Ksites> studysite[N];
+  int<lower=0> K_cov;   // number of predictors
+  matrix[N, K_cov] x;   // predictor matrix
   int K;
   vector<lower=0>[K] pred_x;
 }
@@ -28,22 +30,25 @@ parameters {
   real<lower=0> k;
   real<lower=0> sigma;
   vector[Ksites] E0_site;
-  
+    vector[K_cov] beta;       // coefficients for predictors
+
 }
 
 transformed parameters {
   vector[N] pred;
   for(i in 1:N){
-    pred[i] = E0+E0_site[studysite[i]] + (pow(dose_mg_kg[i],k)*Emax)/(pow(dose_mg_kg[i],k) + pow(ED50,k));
+    pred[i] = E0+ x[i] * beta + E0_site[studysite[i]] + (pow(dose_mg_kg[i],k)*Emax)/(pow(dose_mg_kg[i],k) + pow(ED50,k));
   }
 }
 model {
   E0_site ~ normal(0, sigma);
-  k ~ exponential(1);
+  k ~ normal(1,.5);
   E0 ~ normal(0,1);
   Emax ~ normal(-3,2);
   ED50 ~ normal(5,2);
   sigma ~ normal(0.25,0.5);
+  beta ~ normal(0,1);
+  
   recurrence ~ bernoulli_logit(pred);
 }
 
@@ -51,7 +56,7 @@ model {
 generated quantities {
   vector[K] pred_y;
   for(i in 1:K){
-    pred_y[i] = inv_logit(E0 + (pow(pred_x[i],k)*Emax)/(pow(pred_x[i],k) + pow(ED50,k)));
+    pred_y[i] = E0 + (pow(pred_x[i],k)*Emax)/(pow(pred_x[i],k) + pow(ED50,k));
   }
 }
 
