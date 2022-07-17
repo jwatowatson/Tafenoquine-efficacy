@@ -514,6 +514,16 @@ stset dlast180_2, failure (outcome7to180) id(pid) origin(origin180)
 stcox tqmgkgtot hbday0 logpara0 hbchange_day23, shared(studysite) // hbchange not sig
 stcox tqmgkgtot hbday0 logpara0 hbchange_day678, shared(studysite) // hbchange not sig
 
+/*
+ xi: mfp: xtgee hbchange_day23 tqmgkgtot t_12_terminal_rescaled age_5 sex logpara0 hbday0 if t_12_terminal_rescaled<=30, i(studysite)
+   est sto model_q
+   fracpred  pred6, for(t_12_terminal_rescaled) 
+   fracpred  pred6_se, for(t_12_terminal_rescaled)  stdp
+   gen Upper6 = pred6 + 1.96*pred6_se
+   gen Lower6 = pred6 - 1.96*pred6_se
+   twoway rarea Lower6 Upper6 t_12_terminal_rescaled if count==1, sort color(gs8) ||line  pred6  t_12_terminal_rescaled  if count==1, sort color(edkblue) ///
+           , xscale(range(10 30)) xlabel(10 (2.5) 30) yscale(range(-5 5)) ylabel(-5 (2.5) 5) ytitle("Change in Hb at day 2/3 (g/L)") xtitle("Terminal elimination half-life (days)") legend(off) graphregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white))
+*/
 
 
 ********Generate linear mixed effects models for +/-TQ 
