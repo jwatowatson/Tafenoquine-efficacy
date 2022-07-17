@@ -34,6 +34,14 @@ clear all
 cd "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Data/Analysis/TQ"
 use "/Users/robcommons/Dropbox/Github/Tafenoquine-efficacy/an1_tq_efficacy.dta"
 
+*Update tq vomiting from raw files
+replace vom_tq=1 if pid=="PRSXC_04_0195"|pid=="PRSXC_12_0413"|pid=="PRSXC_04_0874"|pid=="PRSXC_04_0642"|pid=="PRSXC_10_0048"
+*Drop patient who vomited TQ but was not redosed
+drop if pid=="BSAJK_6_219"
+*Correct dosing based on raw vomiting data
+replace tqmgkgtot=300/100.7 if pid=="KTMTV_13_0870"
+replace tqmgkgtot=tqmgkgtot*2 if pid=="KTMTV_03_0197"
+
 gen study="GATHER" if sid=="BSAJK"
 replace study="DETECTIVE_Ph3" if sid=="KTMTV"
 replace study="DETECTIVE_Ph2" if sid=="PRSXC"
@@ -67,7 +75,7 @@ replace tqcat5=1 if tqmgkgtot<3.75&trt2=="Tq"
 replace tqcat5=2 if tqmgkgtot>=3.75&tqmgkgtot<6.25
 replace tqcat5=3 if tqmgkgtot>=6.25&tqmgkgtot<8.75
 replace tqcat5=4 if tqmgkgtot>=8.75&!missing(tqmgkgtot)
-label define tqcat5 0 "No TQ" 1 "<3.75mg/kg" 2 "3.75-6.25mg/kg" 3 "6.25-8.75mg/kg" 4 ">=8.75mg/kg"
+label define tqcat5 0 "No TQ" 1 "<3.75 mg/kg" 2 "3.75-<6.25 mg/kg" 3 "6.25-<8.75 mg/kg" 4 ">=8.75 mg/kg"
 label values tqcat5 tqcat5
 
 
@@ -205,7 +213,21 @@ stcox tqmgkgtot logmethb_d7 t_12_terminal_rescaled logpara0, shared(studysite) /
 stcox tqmgkgtot c.logmethb_d7##c.t_12_terminal_rescaled logpara0, shared(studysite) // ******significant interaction between t/12 and methb
 
 
+*******Create Table 1
 
+table1_mc, by(tqcat5) ///
+vars( ///        
+age contn %4.1f \ ///
+sex cat %4.1f \ ///  
+weight contn %4.1f \ ///
+tqmgkgtot contn %4.1f \ ///
+cqmgkgtot contn %4.1f \ ///
+maxpvday0 contn %4.1f \ ///
+hbday0 contn %4.1f \ ///
+country cat %4.1f ///
+) ///
+nospace total(before) ///
+saving("table 1_by_tqcat5.xlsx", replace)
 
 
 
@@ -218,6 +240,14 @@ stcox tqmgkgtot c.logmethb_d7##c.t_12_terminal_rescaled logpara0, shared(studysi
 clear all
 cd "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Data/Analysis/TQ"
 use "/Users/robcommons/Dropbox/Github/Tafenoquine-efficacy/tq_longitudinal.dta"
+
+*Update tq vomiting from raw files
+replace vom_tq=1 if pid=="PRSXC_04_0195"|pid=="PRSXC_12_0413"|pid=="PRSXC_04_0874"|pid=="PRSXC_04_0642"|pid=="PRSXC_10_0048"
+*Drop patient who vomited TQ but was not redosed
+drop if pid=="BSAJK_6_219"
+*Correct dosing based on raw vomiting data
+replace tqmgkgtot=300/100.7 if pid=="KTMTV_13_0870"
+replace tqmgkgtot=tqmgkgtot*2 if pid=="KTMTV_03_0197"
 
 gen study="GATHER" if sid=="BSAJK"
 replace study="DETECTIVE_Ph3" if sid=="KTMTV"
@@ -385,7 +415,7 @@ label variable hbobs "Total number of Hb measurements"
 ***Look at dayofobs of hb measurements
 tab dayofobs tqcat5 if !missing(hb_der)&dayofobs<=14
 
-save "/Users/robcommons/Dropbox/Github/Tafenoquine-efficacy/tq_longitudinal_haem.dta"
+save "/Users/robcommons/Dropbox/Github/Tafenoquine-efficacy/tq_longitudinal_haem.dta", replace
 keep if count==1
 
 **Look at fall to <5 g/dL
@@ -405,7 +435,7 @@ mixed hbchange_day23 i.tqcat5 age_5 sex logpara0 hbday0 if count==1 ||studysite:
 lincom 3.tqcat-2.tqcat
 
 /*
- xi: mfp: xtgee hbchange_day23 tqmgkgtot age_5 sex logpara0 hbday0 if count==1, i(studysite)
+ xi: mfp: xtgee hbchange_day23 tqmgkgtot age_5 sex logpara0 hbday0, i(studysite)
    est sto model_n
    fracpred  pred4, for(tqmgkgtot) 
    fracpred  pred4_se, for(tqmgkgtot)  stdp
@@ -441,10 +471,31 @@ mixed hbchange_day23 tqmgkgtot day7_mthb age_5 sex logpara0 hbday0 if count==1  
 
 mixed hbchange_day678 tqmgkgtot logmethb_d7 age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig methb (not tqmg/kg)
 
+/*
+ xi: mfp: xtgee hbchange_day23 tqmgkgtot day7_mthb age_5 sex logpara0 hbday0, i(studysite)
+   est sto model_p
+   fracpred  pred5, for(day7_mthb) 
+   fracpred  pred5_se, for(day7_mthb)  stdp
+   gen Upper5 = pred5 + 1.96*pred5_se
+   gen Lower5 = pred5 - 1.96*pred5_se
+   twoway rarea Lower5 Upper5 day7_mthb if count==1, sort color(gs8) ||line  pred5  day7_mthb  if count==1, sort color(edkblue) ///
+           , xscale(range(0 15)) xlabel(0 (1) 10) yscale(range(-5 5)) ylabel(-5 (2.5) 5) ytitle("Change in Hb at day 2/3 (g/L)") xtitle("Methaemoglobin (%)") legend(off) graphregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white))
+*/
+
 *look at t12
 mixed hbchange_day23 tqmgkgtot t_12_terminal_rescaled age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig t1/2 (not tqmg/kg)
 mixed hbchange_day678 tqmgkgtot t_12_terminal_rescaled age_5 sex logpara0 hbday0 if count==1  ||studysite: //almost sig t1/2 (not tqmg/kg)
 
+/*
+ xi: mfp: xtgee hbchange_day23 tqmgkgtot t_12_terminal_rescaled age_5 sex logpara0 hbday0 if t_12_terminal_rescaled<=30, i(studysite)
+   est sto model_q
+   fracpred  pred6, for(t_12_terminal_rescaled) 
+   fracpred  pred6_se, for(t_12_terminal_rescaled)  stdp
+   gen Upper6 = pred6 + 1.96*pred6_se
+   gen Lower6 = pred6 - 1.96*pred6_se
+   twoway rarea Lower6 Upper6 t_12_terminal_rescaled if count==1, sort color(gs8) ||line  pred6  t_12_terminal_rescaled  if count==1, sort color(edkblue) ///
+           , xscale(range(10 30)) xlabel(10 (2.5) 30) yscale(range(-5 5)) ylabel(-5 (2.5) 5) ytitle("Change in Hb at day 2/3 (g/L)") xtitle("Terminal elimination half-life (days)") legend(off) graphregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white)) plotregion(fcolor(white) lcolor(white) ifcolor(white) ilcolor(white))
+*/
 
 *look at t12 and methb
 mixed hbchange_day23 tqmgkgtot t_12_terminal_rescaled logmethb_d7 age_5 sex logpara0 hbday0 if count==1  ||studysite: //sig t1/2 and methb (not tqmg/kg)
