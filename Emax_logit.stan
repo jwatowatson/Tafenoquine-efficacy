@@ -30,8 +30,8 @@ parameters {
   real<lower=0> k;
   real<lower=0> sigma;
   vector[Ksites] E0_site;
-    vector[K_cov] beta;       // coefficients for predictors
-
+  vector[K_cov] beta;       // coefficients for predictors
+  
 }
 
 transformed parameters {
@@ -41,12 +41,12 @@ transformed parameters {
   }
 }
 model {
+  sigma ~ normal(0.5,1);
   E0_site ~ normal(0, sigma);
-  k ~ normal(1,.5);
+  k ~ exponential(1);
   E0 ~ normal(0,1);
   Emax ~ normal(-3,2);
-  ED50 ~ normal(5,2);
-  sigma ~ normal(0.25,0.5);
+  ED50 ~ normal(5,5);
   beta ~ normal(0,1);
   
   recurrence ~ bernoulli_logit(pred);
