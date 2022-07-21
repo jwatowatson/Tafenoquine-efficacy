@@ -26,6 +26,12 @@ rename day7_mthb2 day7_mthb
 save "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Stata do files/Analysis files/TQ/day_7_mthb.dta", replace
 
 
+*Update G6PD genotyping file
+import delimited "/Users/robcommons/Dropbox/Github/Tafenoquine-efficacy/G6PD_genotyping.csv", varnames(1) clear 
+keep pid g6pdmsta
+encode g6pdmsta, gen(g6pd_geno)
+drop g6pdmsta
+save "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Stata do files/Analysis files/TQ/g6pd_geno.dta", replace
 
 *******************************************
 ********Main efficacy analysis***********
@@ -41,6 +47,8 @@ drop if pid=="BSAJK_6_219"
 *Correct dosing based on raw vomiting data
 replace tqmgkgtot=300/100.7 if pid=="KTMTV_13_0870"
 replace tqmgkgtot=tqmgkgtot*2 if pid=="KTMTV_03_0197"
+*One patient started PQ on day 7, dose needs updating:
+replace pqmgkgtot=2.90455 if pid=="KTMTV_13_0020"
 
 gen study="GATHER" if sid=="BSAJK"
 replace study="DETECTIVE_Ph3" if sid=="KTMTV"
@@ -248,6 +256,8 @@ drop if pid=="BSAJK_6_219"
 *Correct dosing based on raw vomiting data
 replace tqmgkgtot=300/100.7 if pid=="KTMTV_13_0870"
 replace tqmgkgtot=tqmgkgtot*2 if pid=="KTMTV_03_0197"
+*One patient started PQ on day 7, dose needs updating:
+replace pqmgkgtot=2.90455 if pid=="KTMTV_13_0020"
 
 gen study="GATHER" if sid=="BSAJK"
 replace study="DETECTIVE_Ph3" if sid=="KTMTV"
@@ -264,7 +274,9 @@ drop _merge
 merge m:1 pid using "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Stata do files/Analysis files/TQ/day_7_mthb.dta"
 drop if _merge==2
 drop _merge
-
+merge m:1 pid using "/Users/robcommons/Dropbox/WWARN Vivax Study Groups/Stata do files/Analysis files/TQ/g6pd_geno.dta"
+drop if _merge==2
+drop _merge
 
 *Identify if 2 Hb measurements, including one on day 0 are not available
 count if hbday0==. & count==1  
@@ -506,6 +518,11 @@ mixed hbchange_day23 tqmgkgtot c.logmethb_d7##c.t_12_terminal_rescaled age_5 sex
 mixed hbchange_day678 tqmgkgtot c.logmethb_d7##c.t_12_terminal_rescale age_5 sex logpara0 hbday0 if count==1  ||studysite: // interaction not sig
 
 
+*Look at G6PD_genotyping
+bysort g6pd_geno: summ tqmgkgtot if tqmgkgtot>0&!missing(tqmgkgtot)&!missing(g6pd_geno), detail
+bysort g6pd_geno: summ hbdiff if tqmgkgtot>0&!missing(tqmgkgtot)&!missing(g6pd_geno), detail
+bysort g6pd_geno: summ hbchange_day23 if tqmgkgtot>0&!missing(tqmgkgtot)&!missing(g6pd_geno), detail
+bysort g6pd_geno: summ hbchange_day678 if tqmgkgtot>0&!missing(tqmgkgtot)&!missing(g6pd_geno), detail
 
 
 ***Look at risk of recurrence with haemolysis
