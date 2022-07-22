@@ -1,14 +1,3 @@
-//
-// This Stan program defines a simple model, with a
-// vector of values 'y' modeled as normally distributed
-// with mean 'mu' and standard deviation 'sigma'.
-//
-// Learn more about model development with Stan at:
-//
-//    http://mc-stan.org/users/interfaces/rstan.html
-//    https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
-//
-
 data {
   int<lower=0> N;
   int<lower=1> Ksites;
@@ -21,34 +10,42 @@ data {
   vector<lower=0>[K] pred_x;
 }
 
-// The parameters accepted by the model. Our model
-// accepts two parameters 'mu' and 'sigma'.
 parameters {
+  // hyperparameters
+  real<lower=0> sigmasq_u;        // variance of random effects
+  
   real E0;
   real Emax;
   real<lower=0> ED50;
   real<lower=0> k;
-  real<lower=0> sigma;
-  vector[Ksites] E0_site;
   vector[K_cov] beta;       // coefficients for predictors
+  
+  // Random effects
+  vector[Ksites] theta;            // site random effects vector
   
 }
 
 transformed parameters {
   vector[N] pred;
   for(i in 1:N){
-    pred[i] = E0+ x[i] * beta + E0_site[studysite[i]] + (pow(dose_mg_kg[i],k)*Emax)/(pow(dose_mg_kg[i],k) + pow(ED50,k));
+    pred[i] = E0+ x[i] * beta + theta[studysite[i]] + ( pow(dose_mg_kg[i],k)*Emax )/(pow(dose_mg_kg[i],k) + pow(ED50,k));
   }
 }
 model {
-  sigma ~ normal(0.5,1);
-  E0_site ~ normal(0, sigma);
-  k ~ exponential(1);
-  E0 ~ normal(0,1);
-  Emax ~ normal(-3,2);
+  
+  sigmasq_u ~ normal(0.5, 0.5) T[0, ];
+  
+  // site random effects
+  theta ~ normal(0, sigmasq_u);
+  
+  // Population parameters
+  k ~ normal(1,2) T[0,];
+  E0 ~ normal(0,2);
+  Emax ~ normal(-5,5);
   ED50 ~ normal(5,5);
   beta ~ normal(0,1);
   
+  //***** Likelihood *****
   recurrence ~ bernoulli_logit(pred);
 }
 

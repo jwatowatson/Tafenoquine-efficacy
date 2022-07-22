@@ -14,9 +14,9 @@ knitr::opts_chunk$set(cache = T, cache.comments = FALSE,
                       fig.pos = 'H',dev = 'png', dpi = 300)
 library(haven)
 library(sjlabelled)
-# library(gtools)
 library(lme4)
 library(survival)
+library(survminer)
 library(rstan)
 library(rstanarm)
 library(RColorBrewer)
@@ -25,9 +25,8 @@ options(mc.cores = parallel::detectCores())
 
 TODO:
 
-* Maybe get rid of the mgcv fits - doesn't add much
-* Do all glms in rstanarm
 * Run with updated PK output
+* Paper: check effect in volunteers
 
 
 # Preambule
@@ -58,7 +57,7 @@ outcome_dat$pqmgkgtot[is.na(outcome_dat$pqmgkgtot)]=0
 outcome_dat$AMT = paste0('TQ', round(outcome_dat$weight*outcome_dat$tqmgkgtot))
 outcome_dat$AMT[outcome_dat$pqmgkgtot>0] = 'PQ15'
 outcome_dat$AMT[outcome_dat$AMT=='TQ0'] = 'No Radical Cure'
-writeLines('TQ doses in data:')
+writeLines('TQ doses in efficacy analyses:')
 table(outcome_dat$AMT)
 
 # Define the sensitivity analysis subgroup (300 mg dose)
@@ -74,6 +73,8 @@ max(outcome_dat$tqmgkgtot[which(outcome_dat$outcome_primary==1)])
 max(outcome_dat$pqmgkgtot[which(outcome_dat$outcome_primary==1)])
 
 ind_rm_endpoint_binary = is.na(outcome_dat$malariaday) & outcome_dat$dlast<=30
+ids_exclude = unique(outcome_dat$pid[ind_rm_endpoint_binary])
+write.csv(data.frame(pid=ids_exclude), file = 'ids_exclude.csv',row.names = F, quote = F)
 writeLines(sprintf('%s patients were lost to follow-up before 1 month',sum(ind_rm_endpoint_binary)))
 writeLines(sprintf('%s patients were lost to follow-up before 4 months',sum(is.na(outcome_dat$malariaday) & outcome_dat$dlast<105)))
 writeLines(sprintf('%s patients were lost to follow-up before 6 months',sum(is.na(outcome_dat$malariaday) & outcome_dat$dlast<164)))
@@ -81,6 +82,13 @@ writeLines(sprintf('%s patients were lost to follow-up before 6 months',sum(is.n
 # if less than 1 month follow-up then remove from analysis
 outcome_dat$outcome_primary[ind_rm_endpoint_binary]=NA
 outcome_dat$outcome7to180[ind_rm_endpoint_binary]=NA
+
+ind_efficacy = !is.na(outcome_dat$outcome_primary)
+table(outcome_dat$AMT[ind_efficacy])
+writeLines(sprintf('A total of %s patients received TQ in the efficacy population with doses varying from %s to %s mg/kg',
+                   sum(ind_efficacy & outcome_dat$tqmgkgtot>0),
+                   round(min(outcome_dat$tqmgkgtot[ind_efficacy & outcome_dat$tqmgkgtot>0]),1),
+                   round(max(outcome_dat$tqmgkgtot[ind_efficacy & outcome_dat$tqmgkgtot>0]),1)))
 
 table(outcome_dat$outcome_primary)
 table(outcome_dat$outcome7to180)
@@ -104,41 +112,158 @@ pk_summaries = merge(pk_summaries, # add tqmgkgtot to pk_summaries
 pk_summaries = merge(pk_summaries, # add primary outcome to pk_summaries
                      outcome_dat[,c('pid','outcome_primary')],
                      by.x = 'PID', by.y='pid', all.x = T)
+
+# Day 28 CQ level
+day28CQ = read.csv('CQ_day_28.csv')
+day28CQ$Day_28_CQ = as.numeric(day28CQ$Day_28_CQ)
+outcome_dat = merge(outcome_dat, day28CQ, by='pid', all.x=T)
 ```
 
 
 # Data summaries 
 
-## Kaplan Meier time to recurrence
+## Table 1
 
-```{r KM_plot}
+```{r}
 outcome_dat$tqcat = as.character(cut(outcome_dat$tqmgkgtot,
                                      breaks = c(0,.01,3.75,6.25,8.75,15),
                                      include.lowest = T,right = F))
 outcome_dat$tqcat[outcome_dat$pqmgkgtot>0]='PQ'
+outcome_dat$tqcat[outcome_dat$pqmgkgtot==0 & outcome_dat$tqmgkgtot==0]='No radical cure'
+outcome_dat$tqcat = factor(outcome_dat$tqcat, levels = c('No radical cure',
+                                                         'PQ',
+                                                         "[0.01,3.75)",
+                                                         "[3.75,6.25)",
+                                                         "[6.25,8.75)",
+                                                         "[8.75,15]"))
 
+outcome_dat$tqcat[ind_rm_endpoint_binary]=NA
+print(aggregate(tqmgkgtot ~ tqcat, data = outcome_dat, mean))
+t1=aggregate(outcome_primary ~ tqcat, data = outcome_dat, function(x) round(100*mean(x),1))
+t2=aggregate(outcome_primary ~ tqcat, data = outcome_dat, sum)
+t3=aggregate(outcome_primary ~ tqcat, data = outcome_dat, length)
+xx=cbind(t1, t2[,2], t3[,2])
+colnames(xx)[2:4] = c('mean','n','total')
+print(xx)
+
+writeLines('mean age:')
+print(aggregate(age ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(mean(x))))
+writeLines('SD age:')
+print(aggregate(age ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(sd(x),1)))
+
+print(aggregate(sex ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) sum(x==2)))
+print(aggregate(sex ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(100*mean(x==2))))
+
+print(aggregate(weight ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(mean(x))))
+print(aggregate(weight ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(sd(x),1)))
+
+xx=table(outcome_dat$country[ind_efficacy], outcome_dat$tqcat[ind_efficacy])
+print(xx)
+for(i in 1:ncol(xx)){
+  xx[,i] = round(100*xx[,i]/sum(outcome_dat$tqcat==levels(outcome_dat$tqcat)[i],na.rm=T))
+}
+print(xx)
+
+print(aggregate(logpara0 ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(10^quantile(x))))
+
+print(aggregate(hbday0 ~ tqcat, data = outcome_dat[ind_efficacy, ], function(x) round(c(mean(x), sd(x)),1)))
+
+```
+
+## PK data plot
+
+For supplementary materials
+
+```{r pk_data_plot}
+pk_database = readr::read_csv('../../Tafenoquine_PK_datsets/All_TQ_PK_data.csv',na = '.')[-1, ]
+for(id in unique(pk_database$PID)){
+  pk_database$AMT[pk_database$PID==id] =
+    pk_database$AMT[pk_database$CMT==1 & pk_database$PID==id]
+}
+
+pk_database = pk_database[pk_database$CMT==2 & pk_database$BLQ==0, ] # get just observed concs
+pk_database$AMT = as.numeric(pk_database$AMT)
+pk_database$AMT_col = as.factor(pk_database$AMT)
+cols = RColorBrewer::brewer.pal(n = 4, 'Dark2')
+
+writeLines(sprintf('there are a total of %s concentrations above LOQ in %s patients',nrow(pk_database), length(unique(pk_database$PID))))
+
+pk_database$PID=gsub(x = pk_database$PID, pattern = 'BSAJK',replacement = 'GATHER')
+pk_database$PID=gsub(x = pk_database$PID, pattern = 'KTMTV',replacement = 'DETECTIVE Part 2')
+pk_database$PID=gsub(x = pk_database$PID, pattern = 'PRSXC',replacement = 'DETECTIVE Part 1')
+pk_database$PID=gsub(x = pk_database$PID, pattern = 'Phase1',replacement = 'Phase 1')
+
+pk_database$log_conc = log10(exp(as.numeric(pk_database$LNDV)))
+pk_database$TIME = as.numeric(pk_database$TIME)/24
+
+studies = c('Phase 1', 'DETECTIVE Part 1', 'DETECTIVE Part 2', 'GATHER')
+
+ind_phase1 = grep('Phase 1', pk_database$PID)
+par( las=1, family='serif', cex.lab=1.3, cex.axis=1.3)
+hist(table(pk_database$PID[- ind_phase1]), 
+     xlab='Number of plasma tafenoquine samples > LOQ',
+     main='', ylab = 'Number of patients',
+     breaks = seq(0.5, 8.5, by=1), xaxt='n')
+axis(1, at=1:8)
+par(mfrow=c(2,2))
+for(ss in studies){
+  ind = grep(ss, x = pk_database$PID)
+  plot(pk_database$TIME[ind], pk_database$log_conc[ind], ylab='Plasma tafenoquine (ng/ml)',
+       xlab='Days since dose', xlim=range(pk_database$TIME),
+       ylim= range(pk_database$log_conc), panel.first=grid(),
+       main= paste0(ss, ' (n=', length(unique(pk_database$PID[ind])),')'),
+       yaxt='n', col = cols[pk_database$AMT_col[ind]])
+  axis(2, at = 1:3, labels = 10^(1:3))
+}
+
+legend('topright', legend = levels(pk_database$AMT_col), cex=1.5,
+       col = cols, pch=1, title = 'TQ dose',inset = 0.03)
+```
+
+
+## Kaplan Meier time to recurrence
+
+```{r KM_plot}
 outcome_dat$censored = as.numeric(!is.na(outcome_dat$malariaday))
-survmod = survfit(Surv(dlast, censored) ~ tqcat, data = outcome_dat)
+survmod = survfit(Surv(dlast, censored) ~ tqcat, data = outcome_dat[ind_efficacy, ])
 xx=summary(survmod)
 print(xx$n)
-
 mycols = brewer.pal(n = 6, 'Set2')
-par(las=1, cex.lab=1.3, cex.axis=1.3, family='serif')
-plot(survmod, col = mycols, lty=1:5,
-     ylab = 'Proportion recurrence-free',xaxt='n',
-     xlab= 'Months since treatment', xlim=c(0,180),
-     lwd = c(2,2,2,2,2,4))
-axis(1, at = c(0,30,90, 120, 180), labels=c(0,30,90, 120, 180)/30)
-grid()
-legend('bottomleft', col=mycols, lwd=c(2,2,2,2,2,4), lty=1:5,
-       legend = c('No Tafenoquine (n=186)',
-                  'Tafenoquine: <3.75 mg/kg (n=170)',
-                  'Tafenoquine: 3.75-6.25 mg/kg (n=379)',
-                  'Tafenoquine: 6.25-8.75 mg/kg (n=56)',
-                  'Tafenoquine: >8.75 mg/kg (n=44)',
-                  'Primaquine: 1.76-6.0 mg/kg (n=265)'), inset=0.03)
-abline(v=c(120, 180), lty=2,lwd=2)
-table(outcome_dat$tqcat)
+
+ggsurvplot(survmod, 
+           linetype = c(1,1,2,2,2,2), 
+           censor = TRUE, xlim=c(0,180), ylim=c(0,1), 
+           xlab='Days from treatment',
+           break.x.by=30,palette = 'Set2',
+           legend.labs = c('No TQ',
+                           'PQ 1.76-6.0 mg/kg',
+                           'TQ <3.75 mg/kg',
+                           'TQ 3.75-6.25 mg/kg',
+                           'TQ 6.25-8.75 mg/kg',
+                           'TQ >8.75 mg/kg'), 
+           risk.table.y.text.col	= T,
+           risk.table = T,risk.table.y.text=F,
+           legend.title='', ylab='Recurrence free', 
+           surv.scale='percent', 
+           ggtheme = theme_survminer(base_family='serif'))
+
+# par(las=1, cex.lab=1.3, cex.axis=1.3, family='serif')
+# plot(survmod, col = mycols, lty=1:5,
+#      ylab = 'Proportion recurrence-free',xaxt='n',
+#      xlab= 'Months since treatment', xlim=c(0,180),
+#      lwd = c(4,2,2,2,2,4))
+# axis(1, at = c(0,30,90, 120, 180), labels=c(0,30,90, 120, 180)/30)
+# grid()
+# legend('bottomleft', col=mycols, lwd=c(4,2,2,2,2,4), lty=1:5,
+#        legend = c(paste0('No Tafenoquine (n=',xx$n[1],')'),
+#                   paste0('Tafenoquine: <3.75 mg/kg (n=',xx$n[2],')'),
+#                   paste0('Tafenoquine: 3.75-6.25 mg/kg (n=',xx$n[3],')'),
+#                   paste0('Tafenoquine: 6.25-8.75 mg/kg (n=',xx$n[4],')'),
+#                   paste0('Tafenoquine: >8.75 mg/kg (n=',xx$n[5],')'),
+#                   paste0('Primaquine: 1.76-6.0 mg/kg (n=',xx$n[6],')')),
+#        inset=0.03)
+# abline(v=c(120, 180), lty=2,lwd=2)
+# table(outcome_dat$tqcat)
 ```
 
 
@@ -210,8 +335,13 @@ print(fail_rates_all)
 par(las=1, family='serif', cex.lab=1.3, cex.axis=1.3, mfrow=c(3,3))
 for(cc in unique(outcome_dat$country)){
   hist(outcome_dat$weight[outcome_dat$country==cc],main=cc,xlab='kg',
-       breaks = seq(30, 140, by=5))
+       breaks = seq(30, 140, by=5), ylab='Number of patients')
+  abline(v = median(outcome_dat$weight[outcome_dat$country==cc]), lty=1,lwd=3,col='red')
 }
+
+xx=aggregate(weight ~ country , outcome_dat, function(x) round(median(x)))
+xx = dplyr::arrange(xx, weight)
+print(xx)
 ```
 
 
@@ -346,6 +476,7 @@ boxplot(day7_mthb ~ AS_score, data = outcome_dat)
 
 # Weight based models of tafenoquine efficacy
 
+## Logistic regression
 
 ```{r models1}
 mod_mgkg_all = stan_glmer(outcome_primary ~ pqmgkgtot + tqmgkgtot + logpara0 + (1|studysite),
@@ -390,14 +521,15 @@ writeLines(sprintf('Using all patients (n=%s), the odds ratio for recurrence at 
 ```
 
 
-EMAX model
+## EMAX model
 
 ```{r emax_fitting, include=FALSE}
-RUN_MODELS = T
+RUN_MODELS = F
 fname = 'Rout/emax_fits.RData'
 pred_x = seq(0,15,length.out=1000)
+emax_stan = stan_model(file = 'Emax_logit.stan') # compile model
 
-if(RUN_MODELS){
+if(RUN_MODELS | !file.exists(fname)){
   emax_stan = stan_model(file = 'Emax_logit.stan') # compile model
   
   # only patients with recorded outcome (excludes those who dropped out after 1 month FUP)
@@ -415,7 +547,9 @@ if(RUN_MODELS){
                        studysite = as.numeric(as.factor(as.character(outcome_dat$studysite[ind_include]))),
                        K=length(pred_x),
                        pred_x = pred_x),
-             save_warmup = FALSE,
+             save_warmup = FALSE,iter=4000, thin=5,
+             pars=c('theta'), # we don't save these as it takes up vast memory!
+             include=FALSE,
              verbose=FALSE,refresh=0)
   
   
@@ -432,7 +566,9 @@ if(RUN_MODELS){
                        studysite = as.numeric(as.factor(as.character(outcome_dat$studysite[ind_include]))),
                        K=length(pred_x),
                        pred_x = pred_x),
-             save_warmup = FALSE,
+             save_warmup = FALSE,iter=4000, thin=5,
+             pars=c('theta'), # we don't save these as it takes up vast memory!
+             include=FALSE,
              verbose=FALSE,refresh=0)
   
   save(mod_emax_all, mod_emax_all_6mths, file = fname)
@@ -450,30 +586,39 @@ thetas_all=extract(mod_emax_all,pars=mypars)
 thetas_all_6mths=extract(mod_emax_all_6mths,pars=mypars)
 
 traceplot(mod_emax_all,pars=mypars[1:5])
-traceplot(mod_emax_all_6mths,pars=mypars[1:4])
+traceplot(mod_emax_all_6mths,pars=mypars[1:5])
 ```
 
 
-Compare the model fits
+### Compare EMAX model fits
 
 ```{r emax_fits}
 par(las=1, mfrow=c(2,2), family='serif',bty='n')
 # E0
-plot(density(thetas_all$E0),main='', xlab='E0', ylab='', yaxt='n', xlim=c(-1.5, 1),panel.first=grid(),lwd=3)
+plot(density(thetas_all$E0),main='', xlab='E0', ylab='', yaxt='n', 
+     xlim=c(-3, 1),panel.first=grid(),lwd=3)
 lines(density(thetas_all_6mths$E0),lty=2,lwd=3)
-legend('topleft', lty=1:2, lwd=2, legend = c('All (4 mths)', 'All (6 mths)'))
+xs=seq(-3,1,length.out=100)
+lines(xs, dnorm(xs, 0, 2), lwd=3, col='red')
 
 # Emax
-plot(density(thetas_all_6mths$Emax),main='', xlab='Emax', lty=2,ylab='', yaxt='n', xlim=c(-8,0), panel.first=grid(),lwd=3)
+plot(density(thetas_all_6mths$Emax),main='', xlab='Emax', lty=2,ylab='', yaxt='n', xlim=c(-15,0), panel.first=grid(),lwd=3)
 lines(density(thetas_all$Emax),lty=1,lwd=3)
+xs=seq(-15,0,length.out=100)
+lines(xs, dnorm(xs, -5, 5), lwd=3, col='red')
+legend('topleft', lty=1:2, lwd=2, legend = c('4 months', '6 months'))
 
 # ED50
-plot(density(thetas_all$ED50),main='', xlab='ED50', ylab='', yaxt='n', xlim=c(0,15), panel.first=grid(),lwd=3)
+plot(density(thetas_all$ED50),main='', xlab='ED50 (mg/kg)', ylab='', yaxt='n', xlim=c(0,20), panel.first=grid(),lwd=3)
 lines(density(thetas_all_6mths$ED50),lty=2,lwd=3)
+xs=seq(0,20,length.out=100)
+lines(xs, dnorm(xs, 5, 5), lwd=3, col='red')
 
 # k
-plot(density(thetas_all_6mths$k),main='', xlab='k', lty=2,ylab='', yaxt='n', xlim=c(0,5), panel.first=grid(),lwd=3)
+plot(density(thetas_all_6mths$k),main='', xlab='k', lty=2,ylab='', yaxt='n', xlim=c(0,4), panel.first=grid(),lwd=3)
 lines(density(thetas_all$k),lty=1,lwd=3)
+xs=seq(0,4,length.out=100)
+lines(xs, dnorm(xs, 1, 2), lwd=3, col='red')
 ```
 
 
@@ -505,6 +650,10 @@ for(i in 1:length(pred_x)){
 ps = invlogit(apply(thetas_all$pred_y,2,mean) )
 p0 = ps[1]
 p15 = ps[length(pred_x)]
+
+ps[which.min(abs(pred_x-3))]
+ps[which.min(abs(pred_x-4))]
+ps[which.min(abs(pred_x-5))]
 
 writeLines(sprintf('The model estimates that a 15 mg/kg TQ dose reduces %s%% of all recurrences at 4 months',
                    round((1-p15/p0)*100,2)))
@@ -552,6 +701,7 @@ text(x = 1.5, y = 100*p15 + 2, expression(E[max]),cex=2)
 
 # E90
 x_90 = pred_x[which.min(abs((1-ps/p0) - 0.9*(1-p15/p0)))]
+writeLines(sprintf('The E90 is %s mg/kg', round(x_90,1)))
 y_90 = ps[which.min(abs((1-ps/p0) - 0.9*(1-p15/p0)))]
 lines(c(-10, x_90), rep(100*y_90, 2),lty=2)
 lines(c(x_90,x_90), c(-19, 100*y_90),lty=2)
@@ -559,12 +709,16 @@ text(x = 1.5, y = 100*y_90 + 2, expression(E[90]),cex=2)
 
 # E50
 x_50 = pred_x[which.min(abs((1-ps/p0) - 0.5*(1-p15/p0)))]
+writeLines(sprintf('The E50 is %s mg/kg', round(x_50,1)))
 y_50 = ps[which.min(abs((1-ps/p0) - 0.5*(1-p15/p0)))]
 lines(c(-10, x_50), rep(100*y_50, 2),lty=2)
 lines(c(x_50,x_50), c(-19, 100*y_50),lty=2)
 text(x = 1.5, y = 100*y_50 + 2, expression(E[50]),cex=2)
 
-exp(quantile(thetas_all$beta[,1], probs = c(0.025,.5,.975)))
+# exp(quantile(thetas_all$beta[,1], probs = c(0.025,.5,.975)))
+
+x_95 = pred_x[which.min(abs((1-ps/p0) - 0.95*(1-p15/p0)))]
+writeLines(sprintf('The E95 is %s mg/kg', round(x_95,1)))
 ```
 
 
@@ -577,15 +731,15 @@ ps2 = invlogit(apply(thetas_all_6mths$pred_y,2,mean))
 p0_2 = ps2[1]
 p15_2 = ps2[length(pred_x)]
 
-par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(5,5,0,0),family='serif')
+par(las=1, cex.lab=1.3, cex.axis=1.3,mar=c(5,5,2,2),family='serif')
 
 plot(pred_x, 100*ps2, lwd=3, type='l',
      xlab = '',col=mycols[1], ylab = '',
      ylim = c(0,65), panel.first=grid())
 mtext(text = substitute(paste(italic("P. vivax "), 'recurrence (%)')), 
-      side = 2,line = 3,las=3,cex=1.8)
+      side = 2,line = 3,las=3,cex=1.5)
 mtext(text = 'Single dose tafenoquine (mg/kg)', 
-      side = 1,line = 3,las=1,cex=1.8)
+      side = 1,line = 3,las=1,cex=1.5)
 abline(h = 100*invlogit(mean(thetas_all$E0 + 
                                3.5*thetas_all$beta[,1] + 
                                para_density*thetas_all$beta[,2])),
@@ -613,6 +767,7 @@ text(x = 1.5, y = 100*p15_2 + 2, expression(E[max]),cex=1.7)
 
 # E90
 x_90 = pred_x[which.min(abs((1-ps2/p0_2) - 0.9*(1-p15_2/p0_2)))]
+writeLines(sprintf('The E90 is %s mg/kg', round(x_90,1)))
 y_90 = ps2[which.min(abs((1-ps2/p0_2) - 0.9*(1-p15_2/p0_2)))]
 lines(c(-10, x_90), rep(100*y_90, 2),lty=2)
 lines(c(x_90,x_90), c(-19, 100*y_90),lty=2)
@@ -620,10 +775,15 @@ text(x = 1.5, y = 100*y_90 + 2, expression(E[90]),cex=1.7)
 
 # E50
 x_50 = pred_x[which.min(abs((1-ps2/p0_2) - 0.5*(1-p15_2/p0_2)))]
+writeLines(sprintf('The E50 is %s mg/kg', round(x_50,1)))
 y_50 = ps2[which.min(abs((1-ps2/p0_2) - 0.5*(1-p15_2/p0_2)))]
 lines(c(-10, x_50), rep(100*y_50, 2),lty=2)
 lines(c(x_50,x_50), c(-19, 100*y_50),lty=2)
 text(x = 1.5, y = 100*y_50 + 2, expression(E[50]),cex=1.7)
+
+x_95 = pred_x[which.min(abs((1-ps2/p0_2) - 0.95*(1-p15_2/p0_2)))]
+writeLines(sprintf('The E95 is %s mg/kg', round(x_95,1)))
+
 ```
 
 dose-response
@@ -634,8 +794,7 @@ thts = cbind(E0=thetas_all$E0,
              ED50=thetas_all$ED50,
              k=thetas_all$k,
              beta_para = thetas_all$beta[,2])
-
-rel_effects = apply(thts, 1, function(theta, pred_x) {
+my_f = function(theta, pred_x) {
   ps = invlogit(theta['E0'] + theta['beta_para'] * para_density +
                   (theta['Emax']*pred_x^theta['k'])/
                   (pred_x^theta['k']+theta['ED50']^theta['k']))
@@ -644,25 +803,93 @@ rel_effects = apply(thts, 1, function(theta, pred_x) {
                  (theta['Emax']*15^theta['k'])/
                  (15^theta['k']+theta['ED50']^theta['k']))
   rel_effect = 100*(1-(ps-p15)/(p0-p15))
-  return(rel_effect)},
-  pred_x=pred_x)
+  return(rel_effect)
+}
 
-par(las=1, cex.lab=1.8, cex.axis=1.8,mar=c(5,5,2,2))
+rel_effects = apply(thts, 1, my_f, pred_x=pred_x)
+rel_effects300 = apply(thts, 1, my_f,pred_x=300/outcome_dat$weight)
+rel_effects450 = apply(thts, 1, my_f,pred_x=450/outcome_dat$weight)
+
+layout(mat = matrix(c(1,2,2,2,2,2),nrow = 6))
+par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(0,5,2,2), family='serif')
+hist(300/outcome_dat$weight, xlim = range(pred_x),
+     ylab='',xaxt='n',xlab='',yaxt='n',col = brewer.pal(8,'Pastel2')[7],
+     main='', breaks = seq(0,15,by=.5))
+abline(v=quantile(300/outcome_dat$weight, probs = c(.1, .5, .9)), lty=c(2,1,2))
+
+par(las=1, cex.lab=1.8, cex.axis=1.8,mar=c(5,5,0,2))
 plot(pred_x, rowMeans(rel_effects), lwd=3, type='l',
      xlab = 'Single dose tafenoquine (mg/kg)',col=mycols[1],
-     ylab = 'Effect relative to 15 mg/kg',
+     ylab = 'Effect relative to 15 mg/kg (%)',
      ylim = c(0,100), panel.first=grid())
 
 y_cis = c(apply(rel_effects, 1, quantile, .975),
           rev(apply(rel_effects, 1, quantile, .25)))
 polygon(x = c(pred_x, rev(pred_x)),y = y_cis,
         border = NA, col = adjustcolor(mycols[1], .4))
+abline(v=quantile(300/outcome_dat$weight, probs = c(.1, .5, .9)), lty=c(2,1,2))
+
+par(mfrow=c(1,1), mar=c(5,5,2,2))
+plot(density(rel_effects450), xlim = c(0,100), main='', lwd=3,lty=2,
+     ylab='', yaxt='n', xlab='Effect relative to 15 mg/kg (%)',
+     panel.first=grid())
+lines(density(rel_effects300), lwd=3, lty=1)
+legend('topleft', legend = c(300, 450), title = 'TQ dose (mg/kg)',
+       inset=0.03, lty=1:2, lwd=3, cex=1.5)
+
+print('mean efficacies:')
+mean(rel_effects300)
+mean(rel_effects450)
+```
+
+
+compare logistic and EMAX
+
+```{r compare_logistic_EMAX}
+par(las=1, family='serif', mar=c(5,5,2,2), 
+    cex.axis=1.5, cex.lab=1.5)
+mod=glmer(outcome_primary ~ pqmgkgtot + tqmgkgtot + logpara0 + (1|studysite),
+          family='binomial', data = outcome_dat)
+fixef(mod)
+plot(pred_x, 100*predict(mod,  data.frame(pqmgkgtot=0,tqmgkgtot=pred_x,
+                                          logpara0=3.5,studysite= -1), re.form=NA,
+                         type='response'), type='l',lwd=3,lty=2,
+     ylab='', xlab='', panel.first=grid())
+mtext(text = substitute(paste(italic("P. vivax "), 'recurrence (%)')), 
+      side = 2,line = 3,las=3,cex=1.5)
+mtext(text = 'Single dose tafenoquine (mg/kg)', 
+      side = 1,line = 3,las=1,cex=1.5)
+lines(pred_x, 100*ps, lwd=3, lty=1)
+
+legend('topright', inset = 0.03, legend = c('Logistic','Emax'),lty=2:1,lwd=2,cex=1.5)
+```
+
+weight versus efficacy
+
+```{r abs_effect_by_weight}
+ind_300 = pred_x >= 300/140 & pred_x <= 300/35
+plot(300/pred_x[ind_300], ps[ind_300], type='l',lwd=3,ylim = c(0,1))
+ind_450 = pred_x >= 450/140 & pred_x <= 450/35
+lines(450/pred_x[ind_450], ps[ind_450],lty=2, lwd=3)
+
+f300 = approxfun(x = 300/pred_x[ind_300], y = ps[ind_300])
+f450 = approxfun(x = 450/pred_x[ind_450], y = ps[ind_450])
+
+layout(mat = matrix(c(1,2,2,2,2,2),nrow = 6))
+par(las=1, cex.lab=1.5, cex.axis=1.5,mar=c(0,5,2,2), family='serif')
+hist(outcome_dat$weight,
+     ylab='',xaxt='n',xlab='',yaxt='n',col = brewer.pal(8,'Pastel2')[7],
+     main='', breaks = seq(30,140,by=5))
+par(las=1, cex.lab=1.8, cex.axis=1.8,mar=c(6,6,0,2))
+plot(30:140, 100*(f300(30:140)-f450(30:140)), type='l', lwd=3,
+     ylim = c(0, 15), panel.first=grid(),
+     xlab='Weight (kg)', ylab='Absolute reduction in recurrence (%)')
+text(x = 80, y = 13, '450 vs 300 mg', cex=2)
 ```
 
 
 
-
-```{r}
+```{r NNT}
 dose_mg_kg_300 = 300/sample(outcome_dat$weight, size = 10000, replace = T)
 dose_mg_kg_450 = 450/sample(outcome_dat$weight, size = 10000, replace = T)
 dose_mg_kg_600 = 600/sample(outcome_dat$weight, size = 10000, replace = T)
@@ -681,10 +908,18 @@ for(i in 1:1000){
   p_rec_600[i] = mean(invlogit(thetas_all$E0[ind[i]]+thetas_all$beta[ind[i],2]*log_para+ (thetas_all$Emax[ind[i]]*dose_mg_kg_600^thetas_all$k[ind[i]])/(dose_mg_kg_600^thetas_all$k[ind[i]]+thetas_all$ED50[ind[i]]^thetas_all$k[ind[i]])))
   
 }
+writeLines('Mean recurrence for 300 mg:')
 round(100*quantile(p_rec_300, probs = c(0.025, .5, .975)),1)
+writeLines('Mean recurrence for 450 mg:')
 round(100*quantile(p_rec_450, probs = c(0.025, .5, .975)),1)
+writeLines('Mean recurrence for 600 mg:')
 round(100*quantile(p_rec_600, probs = c(0.025, .5, .975)),1)
 
+par(family='serif', cex.axis=1.3, cex.lab=1.3)
+plot(density(1/(p_rec_300-p_rec_450)), xlab = 'Number needed to treat',main='',
+     ylab='', yaxt='n', panel.first=grid(),lwd=3)
+writeLines('NNT (95%CI):')
+round(quantile(1/(p_rec_300-p_rec_450), probs = c(0.025, .5, .975)),1)
 ```
 
 
@@ -703,9 +938,11 @@ for(rg in unique(outcome_dat$region)){
                family='binomial', data = outcome_dat[ind, ],
                verbose=FALSE,refresh=0)
 }
+
 for(rg in unique(outcome_dat$region)){
   myk = which(rg == unique(outcome_dat$region))
-  writeLines(sprintf('In %s the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is %s',rg, round(exp(fixef(mod_rg_glm[[myk]])['tqmgkgtot']),2)))
+  writeLines(sprintf('In %s the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is %s (n=%s)',rg, round(exp(fixef(mod_rg_glm[[myk]])['tqmgkgtot']),3),
+                     nobs(mod_rg_glm[[myk]])))
 }
 ```
 
@@ -753,6 +990,19 @@ writeLines(
           round(exp(posterior_interval(mod_auc_all,
                                        pars='scale(AUC)',prob = 0.95)[2]),2)))
 
+
+mod_auc_weightadj = stan_glmer(outcome_primary ~ scale(AUC) + tqmgkgtot + logpara0 + (1|studysite),
+                               family='binomial', data = outcome_dat,
+                               verbose=FALSE,refresh=0)
+writeLines(
+  sprintf('Using all data (n=%s), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC %s (95%% CI %s to %s)',
+          nobs(mod_auc_weightadj),
+          round(exp(fixef(mod_auc_weightadj)['scale(AUC)']),2),
+          round(exp(posterior_interval(mod_auc_weightadj,
+                                       pars='scale(AUC)',prob = 0.95)[1]),2),
+          round(exp(posterior_interval(mod_auc_weightadj,
+                                       pars='scale(AUC)',prob = 0.95)[2]),2)))
+
 mod_auc_300 = stan_glmer(outcome_primary ~ scale(AUC) + logpara0 + (1|studysite),
                          family='binomial', data = outcome_dat[ind_sensitivity,],
                          verbose=FALSE,refresh=0)
@@ -780,9 +1030,25 @@ writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 mo
                    round(exp(posterior_interval(mod_cmax_all,
                                                 pars='log10(CMAX)',prob = 0.95)[2]),2)))
 
+
+mod_Cmax_weightadj = stan_glmer(outcome_primary ~ log10(CMAX) + tqmgkgtot + logpara0 + (1|studysite),
+                                family='binomial', data = outcome_dat,
+                                verbose=FALSE,refresh=0)
+writeLines(
+  sprintf('Using all data (n=%s), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ Cmax %s (95%% CI %s to %s)',
+          nobs(mod_Cmax_weightadj),
+          round(exp(fixef(mod_Cmax_weightadj)['log10(CMAX)']),2),
+          round(exp(posterior_interval(mod_Cmax_weightadj,
+                                       pars='log10(CMAX)',prob = 0.95)[1]),2),
+          round(exp(posterior_interval(mod_Cmax_weightadj,
+                                       pars='log10(CMAX)',prob = 0.95)[2]),2)))
+
+plot(mod_Cmax_weightadj, pars=c('tqmgkgtot','log10(CMAX)'))
 mod_cmax_300 = stan_glmer(outcome_primary ~ log10(CMAX) + logpara0 + (1|studysite),
                           family='binomial', data = outcome_dat[ind_sensitivity, ],
                           verbose=FALSE,refresh=0)
+
+
 writeLines(sprintf('Using who got 300 mg (n=%s), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is %s (95%% CI %s to %s)',
                    nobs(mod_cmax_300),
                    round(exp(fixef(mod_cmax_300)['log10(CMAX)']),2),
@@ -795,7 +1061,7 @@ writeLines(sprintf('Using who got 300 mg (n=%s), the odds ratio for recurrence a
 
 
 
-## Terminal elimination half-life and efficacy
+# Terminal elimination half-life
 
 ```{r}
 mod=lm(t_12_terminal_rescaled ~ log(weight)+country, data = outcome_dat)
@@ -811,17 +1077,27 @@ cor.test(outcome_dat$weight, outcome_dat$t_12_terminal_rescaled)
 mod_t_12 = stan_glmer(outcome_primary ~ t_12_terminal_rescaled + (1|studysite),
                       family='binomial', data = outcome_dat,
                       verbose=F, refresh=0)
-writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
+writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
                    nobs(mod_t_12),
                    round(exp(fixef(mod_t_12)['t_12_terminal_rescaled']),2),
                    round(exp(posterior_interval(mod_t_12,pars='t_12_terminal_rescaled',prob = 0.95)[1]),2),
                    round(exp(posterior_interval(mod_t_12,pars='t_12_terminal_rescaled',prob = 0.95)[2]),2)))
 
+mod_t_12_weightadj = stan_glmer(outcome_primary ~ t_12_terminal_rescaled + tqmgkgtot + (1|studysite),
+                                family='binomial', data = outcome_dat,
+                                verbose=F, refresh=0)
+writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
+                   nobs(mod_t_12_weightadj),
+                   round(exp(fixef(mod_t_12_weightadj)['t_12_terminal_rescaled']),2),
+                   round(exp(posterior_interval(mod_t_12_weightadj,pars='t_12_terminal_rescaled',prob = 0.95)[1]),2),
+                   round(exp(posterior_interval(mod_t_12_weightadj,pars='t_12_terminal_rescaled',prob = 0.95)[2]),2)))
+
+plot(mod_t_12_weightadj,pars=c('tqmgkgtot', 't_12_terminal_rescaled'))
 
 mod_t_12_sens = stan_glmer(outcome_primary ~ t_12_terminal_rescaled + (1|studysite),
                            family='binomial', data = outcome_dat[ind_sensitivity,],
                            verbose=F, refresh=0)
-writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
+writeLines(sprintf('Using patients given 300 mg (n=%s), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is %s (95%% CI %s to %s)',
                    nobs(mod_t_12_sens),
                    round(exp(fixef(mod_t_12_sens)['t_12_terminal_rescaled']),2),
                    round(exp(posterior_interval(mod_t_12_sens,pars='t_12_terminal_rescaled',prob = 0.95)[1]),2),
@@ -832,50 +1108,53 @@ writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 mo
 # Methaemoglobin
 
 ```{r}
-mod=mgcv::gam(outcome_primary ~ s(day7_mthb,k=3) + tqmgkgtot + 
-                s(studysite,bs='re') ,
-              data=outcome_dat[outcome_dat$tqmgkgtot>0, ], family = 'binomial')
-summary(mod)
-
-mod = glmer(outcome_primary ~ log(day7_mthb) * tqmgkgtot -day7_mthb + 
-              (1|studysite) ,
-            data=outcome_dat, family = 'binomial')
-summary(mod)
-
-# xs = 10^seq(0,1,by=.01)
-# preds_methb1 = predict(mod, data.frame(day7_mthb=xs,studysite = -1,tqmgkgtot=5),
-#                        se.fit = T)
-
-# par(las=1, cex.lab=1.3, cex.axis=1.3)
-# plot(xs, 100*inv.logit(preds_methb1$fit), type='l',lwd=3,panel.first=grid(),
-#      xlab='Day 7 methaemoglobin (%)', ylab = 'Probability of recurrence',
-#      ylim=c(0,40))
-# polygon(x = c(xs, rev(xs)),
-#         y = 100*inv.logit(c(preds_methb1$fit+1.96*preds_methb1$se.fit,
-#                             rev(preds_methb1$fit-1.96*preds_methb1$se.fit))),
-#         border = NA, col = adjustcolor('grey', .4))
-
 mod_mthb_all = stan_glmer(outcome_primary ~ day7_mthb + tqmgkgtot + logpara0 + (1|studysite),
                           family='binomial', data = outcome_dat[outcome_dat$tqmgkgtot>0, ],
                           verbose=F, refresh=0)
 
-writeLines(sprintf('Using all data (n=%s), the odds ratio for recurrence at 6 months for each absolute percentage increase in methaemoglobin is %s (95%% CI %s to %s)',
+writeLines(sprintf('Using all TQ treated patients (n=%s), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is %s (95%% CI %s to %s)',
                    nobs(mod_mthb_all),
                    round(exp(fixef(mod_mthb_all)['day7_mthb']),2),
                    round(exp(posterior_interval(mod_mthb_all,pars='day7_mthb',prob = 0.95)[1]),2),
                    round(exp(posterior_interval(mod_mthb_all,pars='day7_mthb',prob = 0.95)[2]),2)))
 
+
+
+# only patients with recorded outcome (excludes those who dropped out after 1 month FUP)
+ind_include = !is.na(outcome_dat$outcome_primary) & !is.na(outcome_dat$day7_mthb) & outcome_dat$tqmgkgtot>0
+mod_emax_mthb = 
+  sampling(emax_stan, 
+           data=list(N=sum(ind_include),
+                     Ksites = length(unique(outcome_dat$studysite[ind_include])),
+                     recurrence = outcome_dat$outcome_primary[ind_include],
+                     dose_mg_kg = outcome_dat$tqmgkgtot[ind_include],
+                     K_cov = 2,
+                     x = matrix(cbind(outcome_dat$day7_mthb[ind_include],
+                                      outcome_dat$logpara0[ind_include]),
+                                nrow = sum(ind_include)),
+                     studysite = as.numeric(as.factor(as.character(outcome_dat$studysite[ind_include]))),
+                     K=length(pred_x),
+                     pred_x = pred_x),
+           save_warmup = FALSE,
+           pars=c('theta'), # we don't save these as it takes up vast memory!
+           include=FALSE,
+           verbose=FALSE,refresh=0)
+
+beta_mthb = extract(mod_emax_mthb, pars='beta')$beta[,1]
+writeLines(sprintf('Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of %s (95%% CI %s to %s)',
+                   round(exp(mean(beta_mthb)),2),
+                   round(exp(quantile(beta_mthb,0.025)),2),
+                   round(exp(quantile(beta_mthb,0.975)),2)))
 ```
 
 
 
 # Everything
 
-```{r comparison_all_predictors}
+```{r comparison_all_predictors, fig.height=5}
 mod_everything0 = 
-  glmer(outcome_primary ~ tqmgkgtot * log10(day7_mthb) -  log10(day7_mthb)+
-          scale(CMAX) +
-          scale(AUC) + 
+  glmer(outcome_primary ~ tqmgkgtot +
+          scale(log(day7_mthb)) +
           scale(t_12_terminal_rescaled) + 
           scale(logpara0) +
           (1|studysite),
@@ -884,47 +1163,45 @@ mod_everything0 =
 summary(mod_everything0)
 
 mod_everything = 
-  stan_glmer(outcome_primary ~ scale(tqmgkgtot) + 
-               scale(CMAX) +
-               scale(AUC) + 
-               scale(log10(day7_mthb)) +
-               scale(t_12_terminal_rescaled) + 
-               scale(logpara0) +
+  stan_glmer(outcome_primary ~ tqmgkgtot + 
+               day7_mthb +
+               t_12_terminal_rescaled + 
+               logpara0 +
                (1|studysite),
              family = 'binomial', 
              data = outcome_dat, 
              prior = normal(0,1),
              iter=4000,chain=4,seed=12345,refresh=0)
 
-mypars = c('scale(tqmgkgtot)',
-           'scale(CMAX)',
-           'scale(AUC)', 
-           'scale(log10(day7_mthb))', 
-           'scale(t_12_terminal_rescaled)',
-           'scale(logpara0)')
+writeLines(sprintf('Full model has %s datapoints', nobs(mod_everything)))
+mypars = c('tqmgkgtot',
+           'day7_mthb', 
+           't_12_terminal_rescaled')
+# 'scale(logpara0)')
 # mcmc_intervals(mod_everything,pars=mypars)
-xx=data.frame(cbind(mean = fixef(mod_everything)[-1],
+xx=data.frame(cbind(mean = fixef(mod_everything)[mypars],
                     posterior_interval(mod_everything,pars=mypars,prob = 0.95),
                     posterior_interval(mod_everything,pars=mypars,prob = 0.8)))
 
 par(las=1, cex.lab=1.3, cex.axis=1.3, family='serif',bty='n',
     mar=c(5,13,3,2))
 plot(xx$mean, 1:nrow(xx), xlim=range(xx), yaxt='n', ylab='',
-     xlab='Odds-ratio for recurrence for 1 standard deviation change', xaxt='n',
+     xlab='Odds-ratio for recurrence at 4 months', xaxt='n',
      panel.first=grid(),pch=16, cex=2)
 abline(v=0,lty=2, lwd=2)
-axis(2, at = 1:nrow(xx), labels = c('Tafenoquine (mg/kg)',
-                                    'Tafenoquine Cmax',
-                                    'Tafenoquine AUC',
-                                    'Methaemoglobin\n(day 7, log)',
-                                    'Terminal half-life',
-                                    'Parasite density (log)'),tick = F)
+axis(2, at = 1:nrow(xx), labels = c('Tafenoquine\n(mg/kg increase)',
+                                    # 'Tafenoquine Cmax',
+                                    # 'Tafenoquine AUC',
+                                    'Day 7 methaemoglobin\n(absolute % point increase)',
+                                    'Terminal half-life\n(day increase)'),
+     # 'Parasite density (log)'),
+     tick = F)
 for(i in 1:nrow(xx)){
   lines(xx[i,2:3], c(i,i))
   lines(xx[i,4:5], c(i,i),lwd=3)
 }
-axis(1, at = log(c(0.4, 0.7, 1, 1.3, 1.7)),
-     labels = c(0.4, 0.7, 1, 1.3, 1.7),tick = T)
+axis(1, at = log(c(0.65, 0.8, 1, 1.2)),
+     labels = c(0.65, 0.8, 1, 1.2),tick = T)
 ```
 
 
