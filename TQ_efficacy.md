@@ -1,7 +1,7 @@
 ---
 title: "Clinical Pharmacology of Tafenoquine for the radical cure of vivax malaria"
 author: "James Watson"
-date: "2022-08-08"
+date: "2022-08-09"
 output: 
   html_document: 
     toc: yes

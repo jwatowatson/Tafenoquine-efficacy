@@ -55,7 +55,7 @@ outcome_dat$tqmgkgtot[outcome_dat$pid=='KTMTV_13_0870'] = 300/100.7 # error in d
 outcome_dat$tqmgkgtot[outcome_dat$pid=='KTMTV_03_0197'] = 300/51.5 # error in database
 outcome_dat = outcome_dat[outcome_dat$pid != 'BSAJK_6_219', ] # BSAJK_6_219 vomited but was not re-dosed
 outcome_dat = outcome_dat[!is.na(outcome_dat$logpara0), ] # PRSXC_04_0276 had neg parasitaemia at enrolment
-outcome_dat$pqmgkgtot[outcome_dat$pid=='KTMTV_13_0020']=14*15/72.3
+outcome_dat$pqmgkgtot[outcome_dat$pid=='KTMTV_13_0020'] = 14*15/72.3
 
 outcome_dat$pqmgkgtot[is.na(outcome_dat$pqmgkgtot)]=0
 outcome_dat$AMT = paste0('TQ', round(outcome_dat$weight*outcome_dat$tqmgkgtot))
@@ -234,7 +234,7 @@ mycols = brewer.pal(n = 6, 'Set2')
 
 ggsurvplot(survmod, 
            linetype = c(1,1,2,2,2,2), 
-           censor = TRUE, xlim=c(0,180), ylim=c(0,1), 
+           censor = T, xlim=c(0,180), ylim=c(0,1), 
            xlab='Days from treatment',
            break.x.by=30,palette = 'Set2',
            legend.labs = c('No TQ',
@@ -244,29 +244,11 @@ ggsurvplot(survmod,
                            'TQ 6.25-8.75 mg/kg',
                            'TQ >8.75 mg/kg'), 
            risk.table.y.text.col	= T,
-           fun = function(x) 1-x,
+           fun = function(x) x,
            risk.table = T,risk.table.y.text=F,
            legend.title='', ylab='Risk of recurrence', 
            surv.scale='percent', 
            ggtheme = theme_survminer(base_family='serif'))
-
-# par(las=1, cex.lab=1.3, cex.axis=1.3, family='serif')
-# plot(survmod, col = mycols, lty=1:5,
-#      ylab = 'Proportion recurrence-free',xaxt='n',
-#      xlab= 'Months since treatment', xlim=c(0,180),
-#      lwd = c(4,2,2,2,2,4))
-# axis(1, at = c(0,30,90, 120, 180), labels=c(0,30,90, 120, 180)/30)
-# grid()
-# legend('bottomleft', col=mycols, lwd=c(4,2,2,2,2,4), lty=1:5,
-#        legend = c(paste0('No Tafenoquine (n=',xx$n[1],')'),
-#                   paste0('Tafenoquine: <3.75 mg/kg (n=',xx$n[2],')'),
-#                   paste0('Tafenoquine: 3.75-6.25 mg/kg (n=',xx$n[3],')'),
-#                   paste0('Tafenoquine: 6.25-8.75 mg/kg (n=',xx$n[4],')'),
-#                   paste0('Tafenoquine: >8.75 mg/kg (n=',xx$n[5],')'),
-#                   paste0('Primaquine: 1.76-6.0 mg/kg (n=',xx$n[6],')')),
-#        inset=0.03)
-# abline(v=c(120, 180), lty=2,lwd=2)
-# table(outcome_dat$tqcat)
 ```
 
 ```{r data_summaries}

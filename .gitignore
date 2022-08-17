@@ -54,3 +54,4 @@ po/*~
 rsconnect/
 .DS_Store
 *.RData
+TQ_efficacy.html
