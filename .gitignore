@@ -55,3 +55,4 @@ rsconnect/
 .DS_Store
 *.RData
 TQ_efficacy.html
+TQ_efficacy.log

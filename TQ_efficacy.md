@@ -1,7 +1,7 @@
 ---
 title: "Clinical Pharmacology of Tafenoquine for the radical cure of vivax malaria"
 author: "James Watson"
-date: "2022-08-09"
+date: "2022-09-12"
 output: 
   html_document: 
     toc: yes
@@ -12,10 +12,7 @@ output:
 
 TODO:
 
--   Run with updated PK output
 -   Paper: check effect in volunteers
--   Analysis just with DETECTIVE part 1 (randomised allocation)
--   Boxplot of half lives across regions
 -   Association with weight (just in placebo arms)
 
 # Preambule
@@ -92,6 +89,30 @@ TODO:
 ```
 ## Warning: NAs introduced by coercion
 ```
+
+
+![](TQ_efficacy_files/figure-html/add_Pk-1.png)<!-- -->![](TQ_efficacy_files/figure-html/add_Pk-2.png)<!-- -->![](TQ_efficacy_files/figure-html/add_Pk-3.png)<!-- -->
+
+```
+## The median half life is 15.9 days
+```
+
+![](TQ_efficacy_files/figure-html/add_Pk-4.png)<!-- -->
+
+```
+## 
+## 	Pearson's product-moment correlation
+## 
+## data:  pk_summaries$t_12_bw_adjusted and pk_summaries$BW
+## t = -0.11888, df = 709, p-value = 0.9054
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  -0.07796600  0.06908513
+## sample estimates:
+##          cor 
+## -0.004464569
+```
+
 
 # Data summaries
 
@@ -247,24 +268,22 @@ For supplementary materials
 
 
 ```
-## Rows: 5248 Columns: 18
-```
-
-```
+## Rows: 5218 Columns: 19
 ## ── Column specification ────────────────────────────────────────────────────────
 ## Delimiter: ","
-## chr (11): #ID, TIME, AMT, ODV, LNDV, AGE, SEX, BW, ACT, COUNTRY, PID
-## dbl  (7): MDV, BLQ, CMT, EVID, TYPE, VOMIT, STUDY
-```
-
-```
+## chr (11): #ID, TIME, AMT, ODV, LNDV, AGE, SEX, BW, ACT, DAY_PERIOD, PID
+## dbl  (8): MDV, BLQ, CMT, EVID, TYPE, VOMIT, STUDY, COUNTRY
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 ```
-## there are a total of 4389 concentrations above LOQ in 718 patients
+## there are a total of 4384 concentrations above LOQ in 718 patients
+```
+
+```
+## there are a total of 115 concentrationsBLQ in 718 patients
 ```
 
 ![](TQ_efficacy_files/figure-html/pk_data_plot-1.png)<!-- -->![](TQ_efficacy_files/figure-html/pk_data_plot-2.png)<!-- -->
@@ -277,6 +296,8 @@ For supplementary materials
 ```
 
 ![](TQ_efficacy_files/figure-html/KM_plot-1.png)<!-- -->
+
+
 
 
 ```
@@ -299,10 +320,6 @@ For supplementary materials
 
 ```
 ## [1]  0.55 14.29
-```
-
-```
-## Median number of methb measurements is 12 (range 2 to 19)
 ```
 
 ```
@@ -331,6 +348,8 @@ For supplementary materials
 ## 5     [6.25,8.75)            7.4  54.0
 ## 6       [8.75,15]            0.0  43.0
 ```
+
+
 
 ## CYP2D6
 
@@ -430,6 +449,28 @@ For supplementary materials
 ##         *9/*41    0    0   0    0   1    0   0   0
 ```
 
+```
+## 
+## Call:
+## lm(formula = t_12_bw_adjusted ~ AS_score <= 0.5, data = outcome_dat)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -6.3089 -1.6144 -0.4673  1.4756 11.5950 
+## 
+## Coefficients:
+##                     Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)          16.7773     0.1418 118.291   <2e-16 ***
+## AS_score <= 0.5TRUE  -0.7373     0.4779  -1.543    0.124    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 2.661 on 384 degrees of freedom
+##   (714 observations deleted due to missingness)
+## Multiple R-squared:  0.006161,	Adjusted R-squared:  0.003573 
+## F-statistic: 2.381 on 1 and 384 DF,  p-value: 0.1237
+```
+
 ## Basic data plots
 
 weight
@@ -484,7 +525,7 @@ weight
 ```
 
 ```
-## Between day 0 and day 20 there are 5816 measurements. Median (range) per patient is 7 (1 to 12)
+## Between day 0 and day 20 there are 5818 measurements. Median (range) per patient is 7 (1 to 12)
 ```
 
 ![](TQ_efficacy_files/figure-html/methaemoglobin_prep-1.png)<!-- -->
@@ -492,23 +533,48 @@ weight
 ```
 ## 
 ## Call:
-## lm(formula = log10(day7_mthb) ~ tqmgkgtot, data = pk_summaries)
+## lm(formula = log10(day7_mthb) ~ tqmgkgtot, data = outcome_dat[ind, 
+##     ])
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -1.11911 -0.16721  0.00514  0.18448  0.62429 
+##     Min      1Q  Median      3Q     Max 
+## -1.1206 -0.1781  0.0068  0.2038  0.6972 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) -0.100671   0.024584  -4.095 4.76e-05 ***
-## tqmgkgtot    0.065552   0.004891  13.404  < 2e-16 ***
+##             Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) -0.16200    0.01719  -9.424   <2e-16 ***
+## tqmgkgtot    0.07739    0.00377  20.526   <2e-16 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 0.2632 on 648 degrees of freedom
-##   (72 observations deleted due to missingness)
-## Multiple R-squared:  0.2171,	Adjusted R-squared:  0.2159 
-## F-statistic: 179.7 on 1 and 648 DF,  p-value: < 2.2e-16
+## Residual standard error: 0.2798 on 733 degrees of freedom
+##   (100 observations deleted due to missingness)
+## Multiple R-squared:  0.365,	Adjusted R-squared:  0.3641 
+## F-statistic: 421.3 on 1 and 733 DF,  p-value: < 2.2e-16
+```
+
+```
+## 
+## Call:
+## lm(formula = log10(day7_mthb) ~ tqmgkgtot + t_12_bw_adjusted, 
+##     data = outcome_dat)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.14661 -0.17789 -0.00072  0.19194  0.66047 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)       0.115630   0.076303   1.515  0.13022    
+## tqmgkgtot         0.065333   0.005113  12.777  < 2e-16 ***
+## t_12_bw_adjusted -0.012587   0.004408  -2.855  0.00446 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.2711 on 569 degrees of freedom
+##   (528 observations deleted due to missingness)
+## Multiple R-squared:  0.2289,	Adjusted R-squared:  0.2262 
+## F-statistic: 84.46 on 2 and 569 DF,  p-value: < 2.2e-16
 ```
 
 ![](TQ_efficacy_files/figure-html/methaemoglobin_prep-2.png)<!-- -->
@@ -521,35 +587,7 @@ weight
 
 
 
-![](TQ_efficacy_files/figure-html/terminal_half_life-1.png)<!-- -->
 
-```
-## [1] 18.17566
-```
-
-```
-## 
-## Call:
-## lm(formula = t_12_terminal_rescaled ~ AS_score <= 0.5, data = outcome_dat)
-## 
-## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -11.9579  -2.2104  -0.4231   2.0385  20.6090 
-## 
-## Coefficients:
-##                     Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)          18.8308     0.1894  99.441   <2e-16 ***
-## AS_score <= 0.5TRUE  -0.8654     0.6329  -1.367    0.172    
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 3.573 on 389 degrees of freedom
-##   (709 observations deleted due to missingness)
-## Multiple R-squared:  0.004783,	Adjusted R-squared:  0.002225 
-## F-statistic:  1.87 on 1 and 389 DF,  p-value: 0.1723
-```
-
-![](TQ_efficacy_files/figure-html/terminal_half_life-2.png)<!-- -->
 
 # Weight based models of tafenoquine efficacy
 
@@ -557,15 +595,15 @@ weight
 
 
 ```
-## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.7 (95% CI 0.65 to 0.75)
+## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.7 (95% CI 0.65 to 0.76)
 ```
 
 ```
-## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of primaquine is 0.63 (95% CI 0.55 to 0.71)
+## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of primaquine is 0.62 (95% CI 0.55 to 0.7)
 ```
 
 ```
-## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.66 (95% CI 0.51 to 0.86)
+## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.67 (95% CI 0.5 to 0.86)
 ```
 
 ```
@@ -590,23 +628,26 @@ load fits
 
 
 
+
+### 4 months endpoint
+
 Figure 2 in paper: the main mg/kg driving efficacy plot under the EMAX model
 
 
 ```
-## [1] 0.2840664
+## [1] 0.2852254
 ```
 
 ```
-## [1] 0.2067025
+## [1] 0.2077518
 ```
 
 ```
-## [1] 0.1415006
+## [1] 0.142024
 ```
 
 ```
-## The model estimates that a 15 mg/kg TQ dose reduces 98.64% of all recurrences at 4 months
+## The model estimates that a 15 mg/kg TQ dose reduces 98.72% of all recurrences at 4 months
 ```
 
 ```
@@ -624,18 +665,21 @@ Figure 2 in paper: the main mg/kg driving efficacy plot under the EMAX model
 ```
 
 
+### 6 months endpoint 
+
+
 ```
-## The E90 is 8.4 mg/kg
+## The E90 is 8.3 mg/kg
 ```
 
 ```
-## The E50 is 3.6 mg/kg
+## The E50 is 3.7 mg/kg
 ```
 
 ![](TQ_efficacy_files/figure-html/emax_6months-1.png)<!-- -->
 
 ```
-## The E95 is 10.3 mg/kg
+## The E95 is 10.2 mg/kg
 ```
 
 dose-response
@@ -647,11 +691,11 @@ dose-response
 ```
 
 ```
-## [1] 68.0794
+## [1] 67.82678
 ```
 
 ```
-## [1] 87.81331
+## [1] 87.717
 ```
 
 compare logistic and EMAX
@@ -681,7 +725,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##  10.1  15.1  21.5
+##   9.7  15.6  22.2
 ```
 
 ```
@@ -690,7 +734,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   3.5   6.5  11.5
+##   3.5   6.4  11.8
 ```
 
 ```
@@ -699,7 +743,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   1.0   3.0   7.7
+##   0.9   2.9   7.5
 ```
 
 ![](TQ_efficacy_files/figure-html/NNT-1.png)<!-- -->
@@ -710,7 +754,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   7.2  11.8  22.0
+##   6.9  11.3  22.0
 ```
 
 Compare for different parts of the world
@@ -723,9 +767,9 @@ Compare for different parts of the world
 ```
 
 ```
-## In Americas the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.813 (n=710)
+## In Americas the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.814 (n=710)
 ## In Asia-Pacific the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.82 (n=311)
-## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.805 (n=52)
+## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.802 (n=52)
 ```
 
 Compare all ORs for logistic regression models
@@ -736,32 +780,34 @@ Compare all ORs for logistic regression models
 
 
 ```
-## Using all data (n=634), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.58 (95% CI 0.44 to 0.75)
+## Using all data (n=631), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.56 (95% CI 0.43 to 0.71)
 ```
 
 ```
-## Using all data (n=634), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.93 (95% CI 0.67 to 1.26)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.89 (95% CI 0.64 to 1.23)
 ```
 
+![](TQ_efficacy_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
 ```
-## Using patients who got 300 mg (n=469), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.85 (95% CI 0.66 to 1.09)
+## Using patients who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.81 (95% CI 0.62 to 1.05)
 ```
 
 # CMAX
 
 
 ```
-## Using all data (n=634), the odds ratio for recurrence at 6 months for each 2-fold increase in tafenoquine CMAX is 0.55 (95% CI 0.43 to 0.7)
+## Using all data (n=631), the odds ratio for recurrence at 6 months for each 2-fold increase in tafenoquine CMAX is 0.55 (95% CI 0.42 to 0.69)
 ```
 
 ```
-## Using all data (n=634), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 0.97 (95% CI 0.66 to 1.4)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 1.01 (95% CI 0.69 to 1.5)
 ```
 
 ![](TQ_efficacy_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```
-## Using who got 300 mg (n=469), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.43 (95% CI 0.24 to 0.71)
+## Using who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.45 (95% CI 0.24 to 0.78)
 ```
 
 # Terminal elimination half-life
@@ -770,73 +816,63 @@ Compare all ORs for logistic regression models
 ```
 ## 
 ## Call:
-## lm(formula = t_12_terminal_rescaled ~ log(weight) + country, 
-##     data = outcome_dat)
+## lm(formula = t_12_bw_adjusted ~ country, data = outcome_dat)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -10.9098  -2.4022  -0.4118   1.8207  21.7340 
+##     Min      1Q  Median      3Q     Max 
+## -5.5240 -1.6030 -0.3268  1.2310 12.3798 
 ## 
 ## Coefficients:
 ##                    Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)         13.0100     3.3193   3.919 9.83e-05 ***
-## log(weight)          1.1396     0.7706   1.479    0.140    
-## countryCambodia      1.0189     0.8601   1.185    0.237    
-## countryColombia      1.1936     0.9866   1.210    0.227    
-## countryEthiopia      0.8401     0.7375   1.139    0.255    
-## countryIndia         0.4617     0.6165   0.749    0.454    
-## countryPeru          1.8961     0.3707   5.115 4.15e-07 ***
-## countryPhilippines   3.0877     1.9975   1.546    0.123    
-## countryThailand     -0.0647     0.4760  -0.136    0.892    
-## countryVietnam       0.4189     0.7178   0.584    0.560    
+## (Intercept)         15.9924     0.1858  86.059  < 2e-16 ***
+## countryCambodia      0.4473     0.6069   0.737   0.4614    
+## countryColombia      0.7972     0.7048   1.131   0.2585    
+## countryEthiopia     -0.3528     0.5070  -0.696   0.4868    
+## countryIndia        -0.8303     0.4343  -1.912   0.0563 .  
+## countryPeru          1.2066     0.2458   4.908 1.17e-06 ***
+## countryPhilippines   1.3426     1.4274   0.941   0.3473    
+## countryThailand     -0.6167     0.3047  -2.024   0.0434 *  
+## countryVietnam       0.4786     0.4917   0.973   0.3307    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 3.419 on 639 degrees of freedom
-##   (451 observations deleted due to missingness)
-## Multiple R-squared:  0.06273,	Adjusted R-squared:  0.04953 
-## F-statistic: 4.752 on 9 and 639 DF,  p-value: 3.851e-06
+## Residual standard error: 2.451 on 629 degrees of freedom
+##   (462 observations deleted due to missingness)
+## Multiple R-squared:  0.08728,	Adjusted R-squared:  0.07567 
+## F-statistic: 7.518 on 8 and 629 DF,  p-value: 1.307e-09
 ```
 
-![](TQ_efficacy_files/figure-html/unnamed-chunk-6-1.png)<!-- -->![](TQ_efficacy_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
+![](TQ_efficacy_files/figure-html/t_terminal-1.png)<!-- -->
 
 ```
-## 
-## 	Pearson's product-moment correlation
-## 
-## data:  outcome_dat$weight and outcome_dat$t_12_terminal_rescaled
-## t = 0.77929, df = 644, p-value = 0.4361
-## alternative hypothesis: true correlation is not equal to 0
-## 95 percent confidence interval:
-##  -0.04655608  0.10757919
-## sample estimates:
-##        cor 
-## 0.03069403
+## Using all data (n=629), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.14 (95% CI 1.05 to 1.23)
 ```
 
 ```
-## Using all data (n=631), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.1 (95% CI 1.04 to 1.17)
+## Using all data (n=629), with adjustment for TQ mg/kg dose, the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.15 (95% CI 1.06 to 1.25)
 ```
 
-```
-## Using all data (n=631), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.09 (95% CI 1.02 to 1.16)
-```
-
-![](TQ_efficacy_files/figure-html/unnamed-chunk-6-3.png)<!-- -->
+![](TQ_efficacy_files/figure-html/t_terminal-2.png)<!-- -->
 
 ```
-## Using patients given 300 mg (n=467), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.11 (95% CI 1.04 to 1.19)
+## Using patients given 300 mg (n=467), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.17 (95% CI 1.08 to 1.28)
 ```
 
 # Methaemoglobin
 
 
 ```
-## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.67 to 0.99)
+## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.66 to 0.99)
 ```
 
 ```
-## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.98)
+## Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+## Running the chains for more iterations may help. See
+## http://mc-stan.org/misc/warnings.html#tail-ess
+```
+
+```
+## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.99)
 ```
 
 # Everything
@@ -847,45 +883,49 @@ Compare all ORs for logistic regression models
 ##   Approximation) [glmerMod]
 ##  Family: binomial  ( logit )
 ## Formula: 
-## outcome_primary ~ tqmgkgtot + scale(log(day7_mthb)) + scale(t_12_terminal_rescaled) +  
-##     scale(logpara0) + (1 | studysite)
+## outcome_primary ~ tqmgkgtot + scale(AUC) + scale(CMAX) + scale(log(day7_mthb)) +  
+##     scale(t_12_bw_adjusted) + scale(logpara0) + (1 | studysite)
 ##    Data: outcome_dat
 ## 
 ##      AIC      BIC   logLik deviance df.resid 
-##    572.6    598.7   -280.3    560.6      560 
+##    555.1    589.8   -269.6    539.1      557 
 ## 
 ## Scaled residuals: 
 ##     Min      1Q  Median      3Q     Max 
-## -1.2834 -0.5550 -0.3959 -0.1528  3.3272 
+## -1.5866 -0.5261 -0.3794 -0.1137  5.4596 
 ## 
 ## Random effects:
 ##  Groups    Name        Variance Std.Dev.
-##  studysite (Intercept) 0.4004   0.6328  
-## Number of obs: 566, groups:  studysite, 20
+##  studysite (Intercept) 0.4646   0.6816  
+## Number of obs: 565, groups:  studysite, 20
 ## 
 ## Fixed effects:
-##                               Estimate Std. Error z value Pr(>|z|)    
-## (Intercept)                   -0.10876    0.35907  -0.303  0.76197    
-## tqmgkgtot                     -0.29114    0.07571  -3.846  0.00012 ***
-## scale(log(day7_mthb))         -0.24235    0.15054  -1.610  0.10741    
-## scale(t_12_terminal_rescaled)  0.25910    0.11259   2.301  0.02138 *  
-## scale(logpara0)                0.13395    0.11708   1.144  0.25257    
+##                         Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)              -0.3238     0.5627  -0.575  0.56496    
+## tqmgkgtot                -0.2681     0.1166  -2.301  0.02142 *  
+## scale(AUC)               -1.3980     0.4982  -2.806  0.00502 ** 
+## scale(CMAX)               1.0169     0.5531   1.838  0.06599 .  
+## scale(log(day7_mthb))    -0.2922     0.1625  -1.797  0.07227 .  
+## scale(t_12_bw_adjusted)   0.7412     0.1739   4.263 2.01e-05 ***
+## scale(logpara0)           0.1886     0.1218   1.549  0.12146    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## Correlation of Fixed Effects:
-##             (Intr) tqmgkg s((7_) s(_12_
-## tqmgkgtot   -0.800                     
-## scl(lg(7_))  0.346 -0.440              
-## scl(t_12__)  0.024 -0.073  0.159       
-## scal(lgpr0)  0.076 -0.079  0.023  0.101
+##             (Intr) tqmgkg s(AUC) s(CMAX s((7_) s(_12_
+## tqmgkgtot   -0.902                                   
+## scale(AUC)  -0.213  0.268                            
+## scale(CMAX)  0.496 -0.526 -0.899                     
+## scl(lg(7_))  0.043 -0.106  0.257 -0.311              
+## scl(t_12__)  0.148 -0.212 -0.757  0.654 -0.100       
+## scal(lgpr0) -0.026  0.009  0.026 -0.066  0.034  0.074
 ```
 
 ```
-## Full model has 566 datapoints
+## Full model has 565 datapoints
 ```
 
-![](TQ_efficacy_files/figure-html/comparison_all_predictors-1.png)<!-- -->
+![](TQ_efficacy_files/figure-html/comparison_all_predictors-1.png)<!-- -->![](TQ_efficacy_files/figure-html/comparison_all_predictors-2.png)<!-- -->
 
 CYP2D6
 
@@ -952,26 +992,27 @@ CYP2D6
 ```
 ## 
 ## Call:
-## glm(formula = log10(day7_mthb) ~ tqmgkgtot + TYPE, data = pk_summaries)
+## glm(formula = log10(day7_mthb) ~ tqmgkgtot + as.numeric(ACT == 
+##     "CQ"), data = outcome_dat)
 ## 
 ## Deviance Residuals: 
-##     Min       1Q   Median       3Q      Max  
-## -1.1253  -0.1679   0.0104   0.1811   0.6181  
+##      Min        1Q    Median        3Q       Max  
+## -1.12650  -0.17532   0.00707   0.19096   0.61685  
 ## 
-## Coefficients:
-##              Estimate Std. Error t value Pr(>|t|)    
-## (Intercept) -0.151522   0.036502  -4.151 3.75e-05 ***
-## tqmgkgtot    0.064592   0.004908  13.161  < 2e-16 ***
-## TYPE         0.062112   0.033011   1.882   0.0603 .  
+## Coefficients: (1 not defined because of singularities)
+##                          Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)             -0.089006   0.026411   -3.37 0.000802 ***
+## tqmgkgtot                0.064748   0.005125   12.63  < 2e-16 ***
+## as.numeric(ACT == "CQ")        NA         NA      NA       NA    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## (Dispersion parameter for gaussian family taken to be 0.06901405)
+## (Dispersion parameter for gaussian family taken to be 0.07419154)
 ## 
-##     Null deviance: 57.344  on 649  degrees of freedom
-## Residual deviance: 44.652  on 647  degrees of freedom
-##   (72 observations deleted due to missingness)
-## AIC: 111.87
+##     Null deviance: 54.279  on 573  degrees of freedom
+## Residual deviance: 42.438  on 572  degrees of freedom
+##   (526 observations deleted due to missingness)
+## AIC: 139.9
 ## 
 ## Number of Fisher Scoring iterations: 2
 ```
@@ -979,15 +1020,5 @@ CYP2D6
 ```
 ## 
 ##      CQ    None      AL DHA/PQP 
-##     578      24      24      24
+##     574       0       0       0
 ```
-
-# Power calculations and trial design
-
-
-
-# Power calculations
-
-Superiority of 450 over 300 mg single dose
-
-
