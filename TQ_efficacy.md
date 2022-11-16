@@ -1,7 +1,7 @@
 ---
 title: "Clinical Pharmacology of Tafenoquine for the radical cure of vivax malaria"
 author: "James Watson"
-date: "2022-09-12"
+date: "2022-11-11"
 output: 
   html_document: 
     toc: yes
@@ -94,7 +94,7 @@ TODO:
 ![](TQ_efficacy_files/figure-html/add_Pk-1.png)<!-- -->![](TQ_efficacy_files/figure-html/add_Pk-2.png)<!-- -->![](TQ_efficacy_files/figure-html/add_Pk-3.png)<!-- -->
 
 ```
-## The median half life is 15.9 days
+## The median half life is 16.8 days
 ```
 
 ![](TQ_efficacy_files/figure-html/add_Pk-4.png)<!-- -->
@@ -104,13 +104,13 @@ TODO:
 ## 	Pearson's product-moment correlation
 ## 
 ## data:  pk_summaries$t_12_bw_adjusted and pk_summaries$BW
-## t = -0.11888, df = 709, p-value = 0.9054
+## t = -0.098444, df = 636, p-value = 0.9216
 ## alternative hypothesis: true correlation is not equal to 0
 ## 95 percent confidence interval:
-##  -0.07796600  0.06908513
+##  -0.08150116  0.07374116
 ## sample estimates:
-##          cor 
-## -0.004464569
+##         cor 
+## -0.00390352
 ```
 
 
@@ -269,10 +269,16 @@ For supplementary materials
 
 ```
 ## Rows: 5218 Columns: 19
+```
+
+```
 ## ── Column specification ────────────────────────────────────────────────────────
 ## Delimiter: ","
 ## chr (11): #ID, TIME, AMT, ODV, LNDV, AGE, SEX, BW, ACT, DAY_PERIOD, PID
 ## dbl  (8): MDV, BLQ, CMT, EVID, TYPE, VOMIT, STUDY, COUNTRY
+```
+
+```
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -455,20 +461,20 @@ For supplementary materials
 ## lm(formula = t_12_bw_adjusted ~ AS_score <= 0.5, data = outcome_dat)
 ## 
 ## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -6.3089 -1.6144 -0.4673  1.4756 11.5950 
+##      Min       1Q   Median       3Q      Max 
+## -11.5607  -1.7943  -0.3646   1.8255  11.3496 
 ## 
 ## Coefficients:
 ##                     Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)          16.7773     0.1418 118.291   <2e-16 ***
-## AS_score <= 0.5TRUE  -0.7373     0.4779  -1.543    0.124    
+## (Intercept)          17.4795     0.1611 108.534   <2e-16 ***
+## AS_score <= 0.5TRUE  -0.7475     0.5426  -1.377    0.169    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 2.661 on 384 degrees of freedom
+## Residual standard error: 3.022 on 384 degrees of freedom
 ##   (714 observations deleted due to missingness)
-## Multiple R-squared:  0.006161,	Adjusted R-squared:  0.003573 
-## F-statistic: 2.381 on 1 and 384 DF,  p-value: 0.1237
+## Multiple R-squared:  0.004917,	Adjusted R-squared:  0.002325 
+## F-statistic: 1.897 on 1 and 384 DF,  p-value: 0.1692
 ```
 
 ## Basic data plots
@@ -517,6 +523,8 @@ weight
 ## 9      Brazil     70
 ```
 
+![](TQ_efficacy_files/figure-html/weight_plot-2.png)<!-- -->
+
 ## Methb data
 
 
@@ -561,20 +569,20 @@ weight
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -1.14661 -0.17789 -0.00072  0.19194  0.66047 
+## -1.15107 -0.18098 -0.00734  0.19178  0.65042 
 ## 
 ## Coefficients:
 ##                   Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)       0.115630   0.076303   1.515  0.13022    
-## tqmgkgtot         0.065333   0.005113  12.777  < 2e-16 ***
-## t_12_bw_adjusted -0.012587   0.004408  -2.855  0.00446 ** 
+## (Intercept)       0.159322   0.071663   2.223 0.026593 *  
+## tqmgkgtot         0.064389   0.005086  12.660  < 2e-16 ***
+## t_12_bw_adjusted -0.014255   0.003831  -3.721 0.000218 ***
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 0.2711 on 569 degrees of freedom
+## Residual standard error: 0.2697 on 569 degrees of freedom
 ##   (528 observations deleted due to missingness)
-## Multiple R-squared:  0.2289,	Adjusted R-squared:  0.2262 
-## F-statistic: 84.46 on 2 and 569 DF,  p-value: < 2.2e-16
+## Multiple R-squared:  0.2365,	Adjusted R-squared:  0.2338 
+## F-statistic:  88.1 on 2 and 569 DF,  p-value: < 2.2e-16
 ```
 
 ![](TQ_efficacy_files/figure-html/methaemoglobin_prep-2.png)<!-- -->
@@ -595,15 +603,19 @@ weight
 
 
 ```
-## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.7 (95% CI 0.65 to 0.76)
+## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional 1 mg/kg of tafenoquine (20% increase on the 5 mg/kg adult dose) is 0.7 (95% CI 0.65 to 0.76)
 ```
 
 ```
-## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional mg/kg of primaquine is 0.62 (95% CI 0.55 to 0.7)
+## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional 0.7 mg/kg of primaquine (20% increase on the 3.5 mg/kg adult dose) is 0.72 (95% CI 0.66 to 0.78)
 ```
 
 ```
-## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.67 (95% CI 0.5 to 0.86)
+## [1] 0.72475
+```
+
+```
+## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.66 (95% CI 0.51 to 0.85)
 ```
 
 ```
@@ -725,7 +737,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   9.7  15.6  22.2
+##   9.9  15.3  21.7
 ```
 
 ```
@@ -734,7 +746,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   3.5   6.4  11.8
+##   3.3   6.3  11.9
 ```
 
 ```
@@ -743,7 +755,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   0.9   2.9   7.5
+##   0.9   2.9   7.7
 ```
 
 ![](TQ_efficacy_files/figure-html/NNT-1.png)<!-- -->
@@ -754,7 +766,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   6.9  11.3  22.0
+##   7.4  11.5  21.2
 ```
 
 Compare for different parts of the world
@@ -769,7 +781,7 @@ Compare for different parts of the world
 ```
 ## In Americas the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.814 (n=710)
 ## In Asia-Pacific the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.82 (n=311)
-## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.802 (n=52)
+## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.806 (n=52)
 ```
 
 Compare all ORs for logistic regression models
@@ -780,11 +792,11 @@ Compare all ORs for logistic regression models
 
 
 ```
-## Using all data (n=631), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.56 (95% CI 0.43 to 0.71)
+## Using all data (n=631), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.56 (95% CI 0.42 to 0.71)
 ```
 
 ```
-## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.89 (95% CI 0.64 to 1.23)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.89 (95% CI 0.63 to 1.23)
 ```
 
 ![](TQ_efficacy_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
@@ -801,13 +813,22 @@ Compare all ORs for logistic regression models
 ```
 
 ```
-## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 1.01 (95% CI 0.69 to 1.5)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 1.02 (95% CI 0.68 to 1.54)
 ```
 
 ![](TQ_efficacy_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```
-## Using who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.45 (95% CI 0.24 to 0.78)
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.95 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```
+## Using who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.44 (95% CI 0.24 to 0.77)
 ```
 
 # Terminal elimination half-life
@@ -819,50 +840,65 @@ Compare all ORs for logistic regression models
 ## lm(formula = t_12_bw_adjusted ~ country, data = outcome_dat)
 ## 
 ## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -5.5240 -1.6030 -0.3268  1.2310 12.3798 
+##      Min       1Q   Median       3Q      Max 
+## -10.6309  -1.8159  -0.2304   1.4633  12.2795 
 ## 
 ## Coefficients:
 ##                    Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)         15.9924     0.1858  86.059  < 2e-16 ***
-## countryCambodia      0.4473     0.6069   0.737   0.4614    
-## countryColombia      0.7972     0.7048   1.131   0.2585    
-## countryEthiopia     -0.3528     0.5070  -0.696   0.4868    
-## countryIndia        -0.8303     0.4343  -1.912   0.0563 .  
-## countryPeru          1.2066     0.2458   4.908 1.17e-06 ***
-## countryPhilippines   1.3426     1.4274   0.941   0.3473    
-## countryThailand     -0.6167     0.3047  -2.024   0.0434 *  
-## countryVietnam       0.4786     0.4917   0.973   0.3307    
+## (Intercept)         16.5497     0.2115  78.239  < 2e-16 ***
+## countryCambodia      0.5399     0.6908   0.781    0.435    
+## countryColombia      0.8157     0.8023   1.017    0.310    
+## countryEthiopia     -0.3062     0.5771  -0.531    0.596    
+## countryIndia         0.1208     0.4943   0.244    0.807    
+## countryPeru          1.6961     0.2798   6.061 2.33e-09 ***
+## countryPhilippines   2.3353     1.6248   1.437    0.151    
+## countryThailand     -0.3289     0.3469  -0.948    0.343    
+## countryVietnam       0.4700     0.5596   0.840    0.401    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 2.451 on 629 degrees of freedom
+## Residual standard error: 2.79 on 629 degrees of freedom
 ##   (462 observations deleted due to missingness)
-## Multiple R-squared:  0.08728,	Adjusted R-squared:  0.07567 
-## F-statistic: 7.518 on 8 and 629 DF,  p-value: 1.307e-09
+## Multiple R-squared:  0.08778,	Adjusted R-squared:  0.07618 
+## F-statistic: 7.566 on 8 and 629 DF,  p-value: 1.116e-09
 ```
 
 ![](TQ_efficacy_files/figure-html/t_terminal-1.png)<!-- -->
 
 ```
-## Using all data (n=629), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.14 (95% CI 1.05 to 1.23)
+## Using all data (n=629), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.14 (95% CI 1.06 to 1.22)
 ```
 
 ```
-## Using all data (n=629), with adjustment for TQ mg/kg dose, the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.15 (95% CI 1.06 to 1.25)
+## Using all data (n=629), with adjustment for TQ mg/kg dose, the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.12 (95% CI 1.05 to 1.21)
 ```
 
 ![](TQ_efficacy_files/figure-html/t_terminal-2.png)<!-- -->
 
 ```
-## Using patients given 300 mg (n=467), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.17 (95% CI 1.08 to 1.28)
+## Using patients given 300 mg (n=467), the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.17 (95% CI 1.08 to 1.27)
 ```
 
 # Methaemoglobin
 
 
 ```
-## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.66 to 0.99)
+## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.67 to 1)
+```
+
+```
+## Warning: There were 26 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```
+## Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+## Running the chains for more iterations may help. See
+## http://mc-stan.org/misc/warnings.html#bulk-ess
 ```
 
 ```
@@ -872,7 +908,7 @@ Compare all ORs for logistic regression models
 ```
 
 ```
-## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.99)
+## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.98)
 ```
 
 # Everything
@@ -888,37 +924,37 @@ Compare all ORs for logistic regression models
 ##    Data: outcome_dat
 ## 
 ##      AIC      BIC   logLik deviance df.resid 
-##    555.1    589.8   -269.6    539.1      557 
+##    556.5    591.2   -270.3    540.5      557 
 ## 
 ## Scaled residuals: 
 ##     Min      1Q  Median      3Q     Max 
-## -1.5866 -0.5261 -0.3794 -0.1137  5.4596 
+## -1.8718 -0.5237 -0.3783 -0.1243  5.3106 
 ## 
 ## Random effects:
 ##  Groups    Name        Variance Std.Dev.
-##  studysite (Intercept) 0.4646   0.6816  
+##  studysite (Intercept) 0.5474   0.7399  
 ## Number of obs: 565, groups:  studysite, 20
 ## 
 ## Fixed effects:
 ##                         Estimate Std. Error z value Pr(>|z|)    
-## (Intercept)              -0.3238     0.5627  -0.575  0.56496    
-## tqmgkgtot                -0.2681     0.1166  -2.301  0.02142 *  
-## scale(AUC)               -1.3980     0.4982  -2.806  0.00502 ** 
-## scale(CMAX)               1.0169     0.5531   1.838  0.06599 .  
-## scale(log(day7_mthb))    -0.2922     0.1625  -1.797  0.07227 .  
-## scale(t_12_bw_adjusted)   0.7412     0.1739   4.263 2.01e-05 ***
-## scale(logpara0)           0.1886     0.1218   1.549  0.12146    
+## (Intercept)              -0.3034     0.5629  -0.539  0.58989    
+## tqmgkgtot                -0.2698     0.1152  -2.342  0.01916 *  
+## scale(AUC)               -1.4323     0.5070  -2.825  0.00473 ** 
+## scale(CMAX)               1.1476     0.5769   1.989  0.04666 *  
+## scale(log(day7_mthb))    -0.2921     0.1627  -1.795  0.07258 .  
+## scale(t_12_bw_adjusted)   0.7487     0.1813   4.129 3.65e-05 ***
+## scale(logpara0)           0.1956     0.1218   1.606  0.10833    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
 ## Correlation of Fixed Effects:
 ##             (Intr) tqmgkg s(AUC) s(CMAX s((7_) s(_12_
-## tqmgkgtot   -0.902                                   
-## scale(AUC)  -0.213  0.268                            
-## scale(CMAX)  0.496 -0.526 -0.899                     
-## scl(lg(7_))  0.043 -0.106  0.257 -0.311              
-## scl(t_12__)  0.148 -0.212 -0.757  0.654 -0.100       
-## scal(lgpr0) -0.026  0.009  0.026 -0.066  0.034  0.074
+## tqmgkgtot   -0.894                                   
+## scale(AUC)  -0.224  0.274                            
+## scale(CMAX)  0.487 -0.519 -0.911                     
+## scl(lg(7_))  0.034 -0.101  0.267 -0.316              
+## scl(t_12__)  0.166 -0.225 -0.765  0.689 -0.102       
+## scal(lgpr0) -0.019  0.002  0.004 -0.042  0.032  0.090
 ```
 
 ```
@@ -985,6 +1021,56 @@ CYP2D6
 ## OR for recurrence for poor versus normal/extensive CYP2D6 metabolisers is 0.9 [95% CI is 0.4 to 2.2]
 ```
 
+```
+##       
+##        Brazil Cambodia Colombia Ethiopia India Peru Philippines Thailand
+##   0         2        0        0        0     0    0           0        0
+##   0.25      1        2        0        0     0    0           0        3
+##   0.5       6        3        0        1     0    1           0        6
+##   0.75      2        1        0        0     0    0           0        2
+##   1        22        0        1        6     0   13           0        2
+##   1.25      3        8        0        0     0    0           2       11
+##   1.5      21        2        1        8     0    4           0        3
+##   2        83        3        7       11     0  119           0        7
+##       
+##        Vietnam
+##   0          1
+##   0.25       1
+##   0.5        8
+##   0.75       0
+##   1          1
+##   1.25       5
+##   1.5        0
+##   2          8
+```
+
+```
+## Linear mixed model fit by REML ['lmerMod']
+## Formula: t_12_bw_adjusted ~ +as.factor(AS_score < 0.5) + (1 | studysite)
+##    Data: outcome_dat[outcome_dat$tqmgkgtot > 0, ]
+## 
+## REML criterion at convergence: 1920.7
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -3.7188 -0.6196 -0.1029  0.5711  4.1993 
+## 
+## Random effects:
+##  Groups    Name        Variance Std.Dev.
+##  studysite (Intercept) 0.917    0.9576  
+##  Residual              8.208    2.8650  
+## Number of obs: 386, groups:  studysite, 15
+## 
+## Fixed effects:
+##                               Estimate Std. Error t value
+## (Intercept)                    17.0978     0.3288  52.008
+## as.factor(AS_score < 0.5)TRUE   0.3010     0.9866   0.305
+## 
+## Correlation of Fixed Effects:
+##             (Intr)
+## a.(AS_<0.5) -0.077
+```
+
 ## Phase 1: relationship with DHA/PQP?
 
 ![](TQ_efficacy_files/figure-html/methb_ACT-1.png)<!-- -->![](TQ_efficacy_files/figure-html/methb_ACT-2.png)<!-- -->
@@ -1022,3 +1108,52 @@ CYP2D6
 ##      CQ    None      AL DHA/PQP 
 ##     574       0       0       0
 ```
+
+
+
+
+## metHb in lumefantrine and piperaquine treated volunteers
+
+
+```
+## 
+## Call:
+## lm(formula = log10(day7_mthb) ~ Log10_Lumefantrine, data = Lumefantrine_levels)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.17479 -0.12009 -0.05877  0.08415  0.47497 
+## 
+## Coefficients:
+##                    Estimate Std. Error t value Pr(>|t|)  
+## (Intercept)          0.8102     0.3506   2.311   0.0311 *
+## Log10_Lumefantrine  -0.2190     0.1055  -2.076   0.0503 .
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 0.1583 on 21 degrees of freedom
+## Multiple R-squared:  0.1703,	Adjusted R-squared:  0.1308 
+## F-statistic: 4.311 on 1 and 21 DF,  p-value: 0.05033
+```
+
+```
+## 
+## Call:
+## lm(formula = log10(day7_mthb) ~ Log10_Piperaquine, data = Piperaquine_levels)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.36455 -0.07282  0.02689  0.09727  0.36065 
+## 
+## Coefficients:
+##                   Estimate Std. Error t value Pr(>|t|)
+## (Intercept)         0.4556     0.2974   1.532    0.140
+## Log10_Piperaquine  -0.2215     0.1654  -1.339    0.194
+## 
+## Residual standard error: 0.1682 on 22 degrees of freedom
+## Multiple R-squared:  0.07536,	Adjusted R-squared:  0.03333 
+## F-statistic: 1.793 on 1 and 22 DF,  p-value: 0.1942
+```
+
+![](TQ_efficacy_files/figure-html/phase1_AL_DHAPPQ-1.png)<!-- -->
+
