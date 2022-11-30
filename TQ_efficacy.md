@@ -1,7 +1,7 @@
 ---
 title: "Clinical Pharmacology of Tafenoquine for the radical cure of vivax malaria"
 author: "James Watson"
-date: "2022-11-11"
+date: "2022-11-30"
 output: 
   html_document: 
     toc: yes
@@ -269,16 +269,10 @@ For supplementary materials
 
 ```
 ## Rows: 5218 Columns: 19
-```
-
-```
 ## ── Column specification ────────────────────────────────────────────────────────
 ## Delimiter: ","
 ## chr (11): #ID, TIME, AMT, ODV, LNDV, AGE, SEX, BW, ACT, DAY_PERIOD, PID
 ## dbl  (8): MDV, BLQ, CMT, EVID, TYPE, VOMIT, STUDY, COUNTRY
-```
-
-```
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
@@ -603,7 +597,7 @@ weight
 
 
 ```
-## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional 1 mg/kg of tafenoquine (20% increase on the 5 mg/kg adult dose) is 0.7 (95% CI 0.65 to 0.76)
+## Using all data (n=1073), the odds ratio for recurrence at 4 months for each additional 1 mg/kg of tafenoquine (20% increase on the 5 mg/kg adult dose) is 0.7 (95% CI 0.65 to 0.75)
 ```
 
 ```
@@ -611,11 +605,11 @@ weight
 ```
 
 ```
-## [1] 0.72475
+## [1] 0.72125
 ```
 
 ```
-## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.66 (95% CI 0.51 to 0.85)
+## Using only patients who got a 300 mg dose (n=469), the odds ratio for recurrence at 4 months for each additional mg/kg of tafenoquine is 0.67 (95% CI 0.51 to 0.85)
 ```
 
 ```
@@ -737,7 +731,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   9.9  15.3  21.7
+##   9.7  15.3  21.5
 ```
 
 ```
@@ -746,7 +740,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   3.3   6.3  11.9
+##   3.2   6.3  11.7
 ```
 
 ```
@@ -766,7 +760,7 @@ overall number needed to treat
 
 ```
 ##  2.5%   50% 97.5% 
-##   7.4  11.5  21.2
+##   7.1  11.6  21.1
 ```
 
 Compare for different parts of the world
@@ -779,9 +773,9 @@ Compare for different parts of the world
 ```
 
 ```
-## In Americas the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.814 (n=710)
+## In Americas the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.813 (n=710)
 ## In Asia-Pacific the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.82 (n=311)
-## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.806 (n=52)
+## In Africa the odds ratio for recurrence for each additional mg/kg increase in tafenoquine dose is 0.803 (n=52)
 ```
 
 Compare all ORs for logistic regression models
@@ -796,39 +790,30 @@ Compare all ORs for logistic regression models
 ```
 
 ```
-## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.89 (95% CI 0.63 to 1.23)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for each SD in TQ AUC 0.89 (95% CI 0.63 to 1.24)
 ```
 
 ![](TQ_efficacy_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
 
 ```
-## Using patients who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.81 (95% CI 0.62 to 1.05)
+## Using patients who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each additional mg/kg of tafenoquine is 0.82 (95% CI 0.62 to 1.04)
 ```
 
 # CMAX
 
 
 ```
-## Using all data (n=631), the odds ratio for recurrence at 6 months for each 2-fold increase in tafenoquine CMAX is 0.55 (95% CI 0.42 to 0.69)
+## Using all data (n=631), the odds ratio for recurrence at 6 months for each 2-fold increase in tafenoquine CMAX is 0.54 (95% CI 0.42 to 0.69)
 ```
 
 ```
-## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 1.02 (95% CI 0.68 to 1.54)
+## Using all data (n=631), and adjusted for TQ mg/kg dose, the odds ratio for recurrence at 6 months for a 2-fold increase in TQ Cmax 1.02 (95% CI 0.66 to 1.53)
 ```
 
 ![](TQ_efficacy_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 
 ```
-## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.95 may help. See
-## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-```
-
-```
-## Warning: Examine the pairs() plot to diagnose sampling problems
-```
-
-```
-## Using who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.44 (95% CI 0.24 to 0.77)
+## Using who got 300 mg (n=467), the odds ratio for recurrence at 6 months for each 10 fold increase in tafenoquine CMAX is 0.45 (95% CI 0.25 to 0.77)
 ```
 
 # Terminal elimination half-life
@@ -870,7 +855,7 @@ Compare all ORs for logistic regression models
 ```
 
 ```
-## Using all data (n=629), with adjustment for TQ mg/kg dose, the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.12 (95% CI 1.05 to 1.21)
+## Using all data (n=629), with adjustment for TQ mg/kg dose, the odds ratio for recurrence at 4 months for each additional day in the tafenoquine half life is 1.13 (95% CI 1.05 to 1.21)
 ```
 
 ![](TQ_efficacy_files/figure-html/t_terminal-2.png)<!-- -->
@@ -883,32 +868,11 @@ Compare all ORs for logistic regression models
 
 
 ```
-## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.67 to 1)
+## Using all TQ treated patients (n=569), the odds ratio for recurrence at 4 months for each absolute percentage increase in methaemoglobin is 0.82 (95% CI 0.67 to 0.99)
 ```
 
 ```
-## Warning: There were 26 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
-## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
-```
-
-```
-## Warning: Examine the pairs() plot to diagnose sampling problems
-```
-
-```
-## Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-## Running the chains for more iterations may help. See
-## http://mc-stan.org/misc/warnings.html#bulk-ess
-```
-
-```
-## Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
-## Running the chains for more iterations may help. See
-## http://mc-stan.org/misc/warnings.html#tail-ess
-```
-
-```
-## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.98)
+## Under the TQ mg/kg dose EMAX model, each absolute percentage point increase in methaemglobin as associated in an odds-ratio for recurrence at 4 months of 0.81 (95% CI 0.66 to 0.97)
 ```
 
 # Everything
